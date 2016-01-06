@@ -1,62 +1,162 @@
-GitNote = require '../lib/atom-gitnote'
+AtomGitNote = require '../lib/atom-gitnote'
+fs = require 'fs-extra'
+path = require 'path'
+nodegit = require 'nodegit'
+$4 = require '../lib/fourdollar'
+$4.debug()
+$4.node()
+GitNote = require '../lib/lib-gitnote'
+
+fs.remove = $4.makePromise(fs.remove)
+fs.ensureDir = $4.makePromise(fs.ensureDir)
+
 
 # Use the command `window:run-package-specs` (cmd-alt-ctrl-p) to run specs.
 #
 # To run a specific `it` or `describe` block add an `f` to the front (e.g. `fit`
 # or `fdescribe`). Remove the `f` to unfocus the block.
 
-describe "GitNote", ->
+describe "atom.GitNote", ->
   [workspaceElement, activationPromise] = []
 
   beforeEach ->
+    atom.config.set 'atom-gitnote.notePath', path.resolve(__dirname, '../tmp/repo03')
     workspaceElement = atom.views.getView(atom.workspace)
     activationPromise = atom.packages.activatePackage('atom-gitnote')
 
-  describe "when the atom-gitnote:toggle event is triggered", ->
-    it "hides and shows the modal panel", ->
-      # Before the activation event the view is not on the DOM, and no panel
-      # has been created
-      expect(workspaceElement.querySelector('.atom-gitnote')).not.toExist()
 
-      # This is an activation event, triggering it will cause the package to be
-      # activated.
-      atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle'
+  describe 'atom-gitnote:toggle-find', ->
+    it 'hides and shows the modal panel', ->
+      waitsForPromise ->
+        fs.remove path.resolve(__dirname, '../tmp/repo03')
 
+      expect(workspaceElement.querySelector('.find-view')).not.toExist()
+
+      waitsForPromise ->
+        # dispatch 해야 atom-gitnote 를 active 할 수 있다.
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-find'
+        activationPromise
+
+      waitsFor ->
+        AtomGitNote.modal.isVisible()
+
+      runs ->
+        expect(atom.packages.isPackageActive('atom-gitnote')).toBe(true)
+        expect(AtomGitNote.findView).toExist()
+        expect(AtomGitNote.modal.isVisible()).toBe true
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-find'
+        expect(AtomGitNote.modal.isVisible()).toBe false
+
+
+    it 'findView에 노트 리스트를 출력한다.', ->
+      atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-find'
       waitsForPromise ->
         activationPromise
 
+      gitNote = null
+      dic = null
+      waitsForPromise ->
+        AtomGitNote.getNote()
+        .then (gitNote_) ->
+          gitNote = gitNote_
+          gitNote.create('md')
+        .then (notePath) ->
+          $4.copy path.resolve(__dirname, '../tmp/dmp01.md'), notePath
+        .then ->
+          gitNote.dictionary()
+        .then (dic_) ->
+          dic = dic_
+        .then ->
+          atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-find'
+          atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-find'
+
+      waitsFor ->
+        AtomGitNote.modal.isVisible()
+
       runs ->
-        expect(workspaceElement.querySelector('.atom-gitnote')).toExist()
+        li = workspaceElement.querySelectorAll('.gitnote-headline')
+        li = [].slice.call(li)
+        expect(li.length).toEqual(5)
+        headId = dic[0].headId
+        liElemet = workspaceElement.querySelector("\#gitnote-#{headId}")
+        expect(liElemet).toExist()
+        expect(liElemet.textContent).toEqual('Headline1')
 
-        atomGitnoteElement = workspaceElement.querySelector('.atom-gitnote')
-        expect(atomGitnoteElement).toExist()
 
-        atomGitnotePanel = atom.workspace.panelForItem(atomGitnoteElement)
-        expect(atomGitnotePanel.isVisible()).toBe true
-        atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle'
-        expect(atomGitnotePanel.isVisible()).toBe false
-
-    it "hides and shows the view", ->
-      # This test shows you an integration test testing at the view level.
-
-      # Attaching the workspaceElement to the DOM is required to allow the
-      # `toBeVisible()` matchers to work. Anything testing visibility or focus
-      # requires that the workspaceElement is on the DOM. Tests that attach the
-      # workspaceElement to the DOM are generally slower than those off DOM.
-      jasmine.attachToDOM(workspaceElement)
-
-      expect(workspaceElement.querySelector('.atom-gitnote')).not.toExist()
-
-      # This is an activation event, triggering it causes the package to be
-      # activated.
-      atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle'
-
+    it '첫번째 headline을 선택한다.', ->
+      atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-find'
       waitsForPromise ->
         activationPromise
 
+      dic = null
+      waitsForPromise ->
+        AtomGitNote.getNote()
+        .then (gitNote) ->
+          gitNote.dictionary()
+        .then (dic_) ->
+          dic = dic_
+
+      waitsFor ->
+        AtomGitNote.modal.isVisible()
+
       runs ->
-        # Now we can test for view visibility
-        atomGitnoteElement = workspaceElement.querySelector('.atom-gitnote')
-        expect(atomGitnoteElement).toBeVisible()
-        atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle'
-        expect(atomGitnoteElement).not.toBeVisible()
+        findView = AtomGitNote.findView
+        findView.confirmed = jasmine.createSpy()
+        {list, filterEditorView} = findView
+        atom.commands.dispatch(filterEditorView.element, 'core:confirm')
+        expect(findView.confirmed).toHaveBeenCalledWith(dic[0])
+
+
+  describe '.getNote()', ->
+    repo01 = path.resolve(__dirname, '../tmp/repo01')
+    repo02 = path.resolve(__dirname, '../tmp/repo02')
+
+
+    it 'GitNote repository를 create 한다.', ->
+      gitNote = null
+      waitsForPromise ->
+        GitNote.create = $4.createSpy(GitNote, GitNote.create)
+        fs.remove(repo01)
+        .then ->
+          AtomGitNote.getNote(repo01)
+        .then (gitNote_) ->
+          gitNote = gitNote_
+      runs ->
+        expect(gitNote instanceof GitNote).toBeTruthy()
+        expect(GitNote.create.wasCalled).toBeTruthy()
+        GitNote.create = GitNote.create.func
+
+    it '같은 경로라면 저장한 GitNote를 반환한다.', ->
+      gitNote = null
+      waitsForPromise ->
+        AtomGitNote.getNote(repo01)
+        .then (gitNote_) ->
+          gitNote = gitNote_
+      runs ->
+        expect(gitNote).toEqual(AtomGitNote.getNote._gitNote)
+
+    it 'GitNote repository를 open한다.', ->
+      AtomGitNote.getNote._gitNote = null
+      gitNote = null
+      waitsForPromise ->
+        GitNote.open = $4.createSpy(GitNote, GitNote.open)
+        AtomGitNote.getNote(repo01)
+        .then (gitNote_) ->
+          gitNote = gitNote_
+      runs ->
+        expect(gitNote instanceof GitNote).toBeTruthy()
+        expect(GitNote.open.wasCalled).toBeTruthy()
+        GitNote.open = GitNote.open.func
+
+    it '엉뚱한 repository는 허용하지 않는다.', ->
+      error = false
+      waitsForPromise ->
+        fs.ensureDir(repo02)
+        .then ->
+          nodegit.Repository.init(repo02, 0)
+        .then ->
+          AtomGitNote.getNote(repo02)
+        .catch (err) ->
+          error = true
+      runs ->
+        expect(error).toBeTruthy()

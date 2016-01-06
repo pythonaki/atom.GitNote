@@ -1,33 +1,89 @@
-GitNoteView = require './atom-gitnote-view'
+path = require 'path'
+GitNote = require './lib-gitnote'
+FindView = require './find-view'
 {CompositeDisposable} = require 'atom'
 
-module.exports = GitNote =
-  gitNoteView: null
-  modalPanel: null
-  subscriptions: null
+
+
+getUserHome = (childPath) ->
+  process = require 'process'
+  path.resolve(process.env.HOME || process.env.USERPROFILE, childPath)
+
+
+
+module.exports = AtomGitNote =
+  config:
+    notePath:
+      title: 'GitNote Path:'
+      type: 'string'
+      order: 1
+      default: getUserHome('gitnote')
+
+
+  findView: null
+  modal: null
+  disposables: null
+
 
   activate: (state) ->
-    @gitNoteView = new GitNoteView(state.gitnoteViewState)
-    @modalPanel = atom.workspace.addModalPanel(item: @gitNoteView.getElement(), visible: false)
+    @setupFindView()
 
     # Events subscribed to in atom's system can be easily cleaned up with a CompositeDisposable
-    @subscriptions = new CompositeDisposable
-
+    @disposables = new CompositeDisposable
     # Register command that toggles this view
-    @subscriptions.add atom.commands.add 'atom-workspace', 'atom-gitnote:toggle': => @toggle()
+    @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:toggle-find': => @toggleFind()
+
 
   deactivate: ->
-    @modalPanel.destroy()
-    @subscriptions.dispose()
-    @gitNoteView.destroy()
+    @modal.destroy()
+    # @findView.destroy()
+    @disposables.dispose()
+
 
   serialize: ->
-    gitnoteViewState: @gitNoteView.serialize()
+    # gitnoteViewState: @gitNoteView.serialize()
 
-  toggle: ->
-    console.log 'GitNote was toggled!'
 
-    if @modalPanel.isVisible()
-      @modalPanel.hide()
+  toggleFind: ->
+    console.log 'toggleFind'
+    if @modal.isVisible()
+      @modal.hide()
     else
-      @modalPanel.show()
+      AtomGitNote.getNote()
+      .then (gitNote) =>
+        gitNote.dictionary()
+      .then (dic) =>
+        @findView.setItems(dic)
+        @modal.show()
+        @findView.focusFilterEditor()
+
+
+  setupFindView: ->
+    @findView = new FindView()
+    @modal = atom.workspace.addModalPanel(item: @findView, visible: false)
+
+    @findView.onConfirmed (note) =>
+      console.log 'onConfirmed: ', note.id
+      @modal.hide()
+      # atom.workspace.open("bynote://view/#{note.noteId}", split: 'left')
+
+    @findView.onCancelled () =>
+      console.log 'This view was cancelled'
+      @modal.hide()
+
+
+  getNote: (notePath) ->
+    if(!notePath)
+      notePath = atom.config.get('atom-gitnote.notePath')
+    if(AtomGitNote.getNote._gitNote and AtomGitNote.getNote._gitNote.workDir is notePath)
+      return Promise.resolve(AtomGitNote.getNote._gitNote)
+    GitNote.wasInited(notePath)
+    .then (inited) ->
+      if inited
+        return GitNote.open(notePath)
+        .then (gitNote) ->
+          AtomGitNote.getNote._gitNote = gitNote
+      else
+        return GitNote.create(notePath)
+        .then (gitNote) ->
+          AtomGitNote.getNote._gitNote = gitNote
