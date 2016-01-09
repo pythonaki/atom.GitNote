@@ -4,9 +4,6 @@
   "version": "0.1.0",
   "description": "A short description of your package",
   "keywords": [],
-  "activationCommands": {
-    "atom-workspace": "atom-gitnote:toggle-find"
-  },
   "repository": "https://github.com/bynaki/atom.GitNote.git",
   "license": "MIT",
   "engines": {

@@ -33,8 +33,8 @@ describe "atom.GitNote", ->
       expect(workspaceElement.querySelector('.find-view')).not.toExist()
 
       waitsForPromise ->
-        # dispatch 해야 atom-gitnote 를 active 할 수 있다.
         atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-find'
+        # dispatch 해야 atom-gitnote 를 active 할 수 있다.
         activationPromise
 
       waitsFor ->
@@ -49,7 +49,6 @@ describe "atom.GitNote", ->
 
 
     it 'findView에 노트 리스트를 출력한다.', ->
-      atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-find'
       waitsForPromise ->
         activationPromise
 
@@ -67,7 +66,6 @@ describe "atom.GitNote", ->
         .then (dic_) ->
           dic = dic_
         .then ->
-          atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-find'
           atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-find'
 
       waitsFor ->
@@ -126,6 +124,7 @@ describe "atom.GitNote", ->
         expect(GitNote.create.wasCalled).toBeTruthy()
         GitNote.create = GitNote.create.func
 
+
     it '같은 경로라면 저장한 GitNote를 반환한다.', ->
       gitNote = null
       waitsForPromise ->
@@ -134,6 +133,7 @@ describe "atom.GitNote", ->
           gitNote = gitNote_
       runs ->
         expect(gitNote).toEqual(AtomGitNote.getNote._gitNote)
+
 
     it 'GitNote repository를 open한다.', ->
       AtomGitNote.getNote._gitNote = null
@@ -148,6 +148,7 @@ describe "atom.GitNote", ->
         expect(GitNote.open.wasCalled).toBeTruthy()
         GitNote.open = GitNote.open.func
 
+
     it '엉뚱한 repository는 허용하지 않는다.', ->
       error = false
       waitsForPromise ->
@@ -160,3 +161,50 @@ describe "atom.GitNote", ->
           error = true
       runs ->
         expect(error).toBeTruthy()
+
+
+  describe 'atom-gitnote:new-markdown', ->
+    repo03 = path.resolve(__dirname, '../tmp/repo03')
+
+    it '새 노트 파일(.md)을 TextEditor로 연다.', ->
+      waitsForPromise ->
+        activationPromise
+        .then ->
+          atom.commands.dispatch workspaceElement, 'atom-gitnote:new-markdown'
+
+      waitsFor ->
+        !!atom.workspace.getActiveTextEditor()
+
+      runs ->
+        editor = atom.workspace.getActiveTextEditor()
+        editor.setText('# Hello World')
+        expect(editor.getTitle()).toEqual('# Hello World')
+
+
+    it '이미 열린 노트 파일(.md) 탭 제목을 예쁘게 바꾼다.', ->
+      waitsForPromise ->
+        activationPromise
+      runs ->
+        atom.packages.deactivatePackage('atom-gitnote')
+
+      notePath = null
+      editor = null
+
+      waitsForPromise ->
+        GitNote.open(repo03)
+        .then (gitNote_) ->
+          gitNote = gitNote_
+          gitNote.create('md')
+        .then (notePath_) ->
+          notePath = notePath_
+          atom.workspace.open(notePath)
+        .then (editor_) ->
+          editor = editor_
+          editor.setText('## editor')
+      runs ->
+        expect(editor.getTitle()).toEqual(path.basename(notePath))
+
+      waitsForPromise ->
+        atom.packages.activatePackage('atom-gitnote')
+      runs ->
+        expect(editor.getTitle()).toEqual('# editor')

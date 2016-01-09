@@ -7,24 +7,32 @@ class FindView extends SelectListView
   cancelledCallback: null
 
   initialize: ->
+    console.log 'FindView#initialize()'
     super
     @addClass('overlay from-top')
 
 
   viewForItem: (note) ->
+    console.log 'FindView#viewForItem()'
+    tag = null
+    headline = null
     if(note.headId)
-      "<li id=\"gitnote-#{note.headId}\" class=\"gitnote-headline\">#{note.headline}</li>"
+      tag = "<li id=\"gitnote-#{note.headId}\" class=\"gitnote-headline\">"
     else
-      "<li class=\"gitnote-headline\">#{note.headline}</li>"
+      tag = "<li class=\"gitnote-headline\">"
+    headline = @_indent(note.level) + note.headline
+    tag + headline + '</li>'
 
 
   getFilterKey: ->
-    'headline'
+    'fullHeadline'
 
   confirmed: (note) ->
+    console.log 'FindView#confirmed()'
     @confirmedCallback? note
 
   cancelled: ->
+    console.log 'FindView#cancelled()'
     @cancelledCallback?()
 
   onConfirmed: (callback) ->
@@ -32,3 +40,10 @@ class FindView extends SelectListView
 
   onCancelled: (callback) ->
     @cancelledCallback = callback
+
+
+  _indent: (level) ->
+    return '' if level is 0
+    indent = ''
+    indent += '&nbsp;' for i in [1...level]
+    indent += '+ '
