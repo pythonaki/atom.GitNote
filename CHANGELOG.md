@@ -16,3 +16,14 @@
 - [x] .setupTextEditor()
 - [x] .makeMdEditor()
 - [x] FindView.viewForItem: level에 맞게 이쁘게^^&
+
+
+#### v0.1.2
+
+- [x] MarkdownView 구현.
+- [x] MarkdownView: 해당 headline으로 스크롤 이동. scrollIntoView
+- [x] MarkdownView: save 했을때 title 제대로 바꾸기.
+- [x] bugfix: TextEditor를 닫았을 때 MarkdownView의 buffer가 destroy 되는 문제.
+- [x] atom-gitnote:toggle-open
+- [x] atom-gitnote:delete
+- [x] atom-gitnote:copy

@@ -1,8 +1,17 @@
 path = require 'path'
+url = require 'url'
 GitNote = require './lib-gitnote'
 marked = require 'marked'
 FindView = require './find-view'
+MarkdownView = require './markdown-view'
 {CompositeDisposable} = require 'atom'
+resourcePath = atom.config.resourcePath
+try
+  Editor = require path.resolve resourcePath, 'src', 'editor'
+catch e
+  # Catch error
+TextEditor = Editor ? require path.resolve resourcePath, 'src', 'text-editor'
+
 
 
 
@@ -29,11 +38,14 @@ module.exports = AtomGitNote =
 
   activate: (state) ->
     console.log 'AtomGitNote#activate()'
+    @setupOpener()
+
     # Events subscribed to in atom's system can be easily cleaned up with a CompositeDisposable
     @disposables = new CompositeDisposable
     # Register command that toggles this view
     @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:toggle-find': => @toggleFind()
     @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:new-markdown': => @newMarkdown()
+    @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:toggle-open': => @toggleOpen()
 
     @setupFindView()
     @setupMdEditor()
@@ -73,7 +85,6 @@ module.exports = AtomGitNote =
     .then (notePath) ->
       atom.workspace.open(notePath) # TextEditor를 Promise로 리턴한다.
     .then (editor) =>
-      console.log 'newNoteCalled'
       @newNoteCalled = true
       editor
 
@@ -81,6 +92,31 @@ module.exports = AtomGitNote =
   newMarkdown: ->
     console.log 'AtomGitNote#newMarkdown()'
     @newNote('md')
+
+
+  toggleOpen: ->
+    activePane = atom.workspace.getActivePaneItem()
+    return unless notePath = activePane?.getPath?()
+    console.log 'AtomGitNote#toggleOpen(): ', notePath
+
+    if path.extname(notePath) is '.md'
+      if activePane instanceof TextEditor
+        atom.workspace.open('markdown-view://' + notePath, split: 'left')
+      else if activePane instanceof MarkdownView
+        atom.workspace.open(notePath, split: 'left')
+
+
+  setupOpener: ->
+    atom.workspace.addOpener (uriToOpen) =>
+      console.log 'AtomGitNote#addOpener(): ', uriToOpen
+      try
+        {protocol, host, path: myPath} = url.parse(uriToOpen)
+      catch err
+        console.log err.stack
+        return
+
+      if(protocol is 'markdown-view:')
+        return @findMarkdownView(host + myPath)
 
 
   setupFindView: ->
@@ -91,8 +127,11 @@ module.exports = AtomGitNote =
     @findView.onConfirmed (note) =>
       console.log 'onConfirmed: ', note.id
       @modal.hide()
-      atom.workspace.open(note.path)
-      # atom.workspace.open("bynote://view/#{note.noteId}", split: 'left')
+      uri = 'markdown-view://' + note.path
+      # uri += "\##{note.headId}" if note.headId
+      atom.workspace.open(uri, split: 'left')
+      .then (mdView) ->
+        mdView.scrollIntoView(note.headId) if note.headId
 
     @findView.onCancelled () =>
       console.log 'This view was cancelled'
@@ -103,7 +142,7 @@ module.exports = AtomGitNote =
     console.log 'AtomGitNote#setupMdEditor()'
     @disposables.add atom.workspace.onDidOpen (evt) =>
       console.log 'atom.workspace.onDidOpen'
-      return if(!evt.item.buffer)
+      return unless evt.item instanceof TextEditor
       notePath = evt.item.getPath()
       if(path.extname(notePath) is '.md' and GitNote.isNoteFile(notePath))
         @makeMdEditor(evt.item)
@@ -140,6 +179,16 @@ module.exports = AtomGitNote =
       console.error msg
 
     editor.emitter.emit 'did-change-title', editor.getTitle()
+
+
+  findMarkdownView: (notePath) ->
+    console.log 'AtomGitNote#findMarkdownView()'
+    for view in atom.workspace.getPaneItems()
+      if (view instanceof MarkdownView) and path.resolve(view.getPath()) is path.resolve(notePath)
+        return Promise.resolve(view)
+    atom.project.bufferForPath(notePath)
+    .then (buffer) ->
+      new MarkdownView(buffer)
 
 
   getNote: (notePath) ->

@@ -10,3 +10,8 @@
 'atom-workspace':
   'ctrl-alt-o': 'atom-gitnote:toggle-find'
   'ctrl-alt-q': 'atom-gitnote:new-markdown'
+  'ctrl-alt-e': 'atom-gitnote:toggle-open'
+
+'.gitnote-markdown-view':
+  'alt-cmd-k': 'atom-gitnote:delete'
+  'cmd-c': 'atom-gitnote:copy'
