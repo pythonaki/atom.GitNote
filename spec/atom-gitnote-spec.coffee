@@ -1,11 +1,11 @@
 AtomGitNote = require '../lib/atom-gitnote'
+GitNote = require '../lib/lib-gitnote'
 fs = require 'fs-extra'
 path = require 'path'
 nodegit = require 'nodegit'
 $4 = require '../lib/fourdollar'
 $4.debug()
 $4.node()
-GitNote = require '../lib/lib-gitnote'
 
 fs.remove = $4.makePromise(fs.remove)
 fs.ensureDir = $4.makePromise(fs.ensureDir)

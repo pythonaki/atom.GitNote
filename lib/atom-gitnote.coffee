@@ -1,7 +1,12 @@
 path = require 'path'
 url = require 'url'
-GitNote = require './lib-gitnote'
 marked = require 'marked'
+$4 = require './fourdollar'
+fs = require 'fs-extra'
+
+fs.remove = $4.makePromise(fs.remove)
+
+GitNote = require './lib-gitnote'
 FindView = require './find-view'
 MarkdownView = require './markdown-view'
 {CompositeDisposable} = require 'atom'
@@ -46,6 +51,7 @@ module.exports = AtomGitNote =
     @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:toggle-find': => @toggleFind()
     @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:new-markdown': => @newMarkdown()
     @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:toggle-open': => @toggleOpen()
+    @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:delete': => @deleteNote()
 
     @setupFindView()
     @setupMdEditor()
@@ -104,6 +110,25 @@ module.exports = AtomGitNote =
         atom.workspace.open('markdown-view://' + notePath, split: 'left')
       else if activePane instanceof MarkdownView
         atom.workspace.open(notePath, split: 'left')
+
+
+  deleteNote: ->
+    console.log 'AtomGitNote#deleteNote()'
+    pane = atom.workspace.getActivePaneItem()
+    if pane.getBuff? and pane.getPath?
+      confirm = atom.confirm
+        message: 'Delete?'
+        detailedMessage: "This note will be deleted if you choose 'ok'."
+        buttons: ['Cancel', 'Ok']
+      if confirm is 1
+        mdPath = pane.getPath()
+        if GitNote.isNoteFile(mdPath)
+          mdPath = path.dirname(mdPath)
+        fs.remove(mdPath)
+        .then ->
+          pane.getBuff().destroy()
+        .catch (e) =>
+          console.error e.stack
 
 
   setupOpener: ->
@@ -177,6 +202,10 @@ module.exports = AtomGitNote =
     editor.saveAs = (filePath) ->
       msg = "Don't allow saveAs!!"
       console.error msg
+
+    # getBuff? 와 getPath? 로 gitnote와 관계된 pane인지 확인.
+    editor.getBuff = ->
+      @getBuffer()
 
     editor.emitter.emit 'did-change-title', editor.getTitle()
 

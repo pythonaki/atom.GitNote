@@ -27,3 +27,10 @@
 - [x] atom-gitnote:toggle-open
 - [x] atom-gitnote:delete
 - [x] atom-gitnote:copy
+
+
+#### v0.1.3
+
+- [x] MarkdownView: TextEditor를 추가해 buffer가 destroy되는 걸 방지.
+- [x] MarkdownView: getBuffer()를 getBuff() 로 바꾸기. (Atom이 MarkdownView를 TextEditor로 잘못인식하는 문제 해결.)
+- [x] atom-gitnote:delete를 workspace 범위로 바꿈.

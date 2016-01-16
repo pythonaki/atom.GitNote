@@ -3,6 +3,7 @@ url = require 'url'
 marked = require 'marked'
 highlight = require 'highlight.js'
 GitNote = require './lib-gitnote'
+DmpEditor = require './dmp-editor'
 $4 = require './fourdollar'
 $4.node()
 fs = require 'fs-extra'
@@ -55,56 +56,40 @@ class MarkdownView extends ScrollView
 
 
   buffer: null
+  editor: null
   emitter: null
   disposables: null
   renderer: null
 
 
-  constructor: (buffer) ->
+  constructor: (@buffer) ->
     console.log 'MarkdownView#constructor()'
     super()
 
+    @editor = new DmpEditor(@buffer)
     @emitter = new Emitter
     @disposables = new CompositeDisposable
-    @disposables.add atom.commands.add @element, 'atom-gitnote:delete': => @deleteNote()
     @disposables.add atom.commands.add @element, 'atom-gitnote:copy': => @copySelectedText()
 
     @setupRenderer()
-    @setBuffer(buffer)
+    @setupBuffer()
+    @updateMarkdown()
 
 
   destroy: ->
     console.log 'MarkdownView#destroy()'
     @disposables.dispose()
     @element.remove()
-    destroyBuffer = true
-    for pane in atom.workspace.getPaneItems()
-      if pane.getBuffer?() is @buffer and !(pane is this)
-        console.log 'pane: ', pane
-        destroyBuffer = false
-        break
-    console.log 'destroyBuffer: ', destroyBuffer
-    @buffer.destroy() if destroyBuffer
+    @editor.destroy()
     @emitter.emit 'did-destroy'
 
 
-  setBuffer: (buffer) ->
-    console.log 'MarkdownView#setBuffer()'
-    @buffer = buffer
+  setupBuffer: () ->
+    console.log 'MarkdownView#setupBuffer()'
     @disposables.add @buffer.onDidSave => @updateMarkdown()
     @disposables.add @buffer.onDidDestroy =>
-      console.log 'setBuffer: buffer#onDidDestroy'
-      atom.project.bufferForPath(@buffer.getPath())
-      .then (buffer) =>
-        @setBuffer(buffer)
-    @updateMarkdown()
-
-
-  # setupBuffer: ->
-  #   @buffer.onDidSave (evt) =>
-  #     @updateMarkdown()
-  #   @buffer.onDidDestroy (evt) ->
-  #     console.log 'buffer did destroy: ', evt
+      console.log 'setupBuffer: buffer#onDidDestroy'
+      @destroy()
 
 
   setupRenderer: () ->
@@ -152,8 +137,14 @@ class MarkdownView extends ScrollView
     "#{@getTitle()} - #{path.basename(@buffer.getPath())}"
 
 
+  # getBuff? 와 getPath? 로 gitnote와 관계된 pane인지 확인.
   getPath: ->
     @buffer.getPath()
+
+
+  # getBuff? 와 getPath? 로 gitnote와 관계된 pane인지 확인.
+  getBuff: ->
+    @buffer
 
 
   scrollIntoView: (id) ->
@@ -173,24 +164,6 @@ class MarkdownView extends ScrollView
     @emitter.emit 'did-change-title', @getTitle()
 
 
-  deleteNote: ->
-    console.log 'MarkdownView#deleteNote()'
-    confirm = atom.confirm
-      message: 'Delete?'
-      detailedMessage: "This note will be deleted if you choose 'ok'."
-      buttons: ['Cancel', 'Ok']
-    if confirm is 1
-      mdPath = @getPath()
-      if GitNote.isNoteFile(mdPath)
-        mdPath = path.dirname(mdPath)
-      fs.remove(mdPath)
-      .then =>
-        @destroy()
-        @buffer.destroy()
-      .catch (e) =>
-        console.error e.stack
-
-
   copySelectedText: ->
     atom.clipboard.write(getSelection().toString())
 
@@ -202,7 +175,9 @@ class MarkdownView extends ScrollView
 
 
   onClickDelete: (event, element) ->
-    @deleteNote()
+    console.log 'MarkdownView#onClickDelete'
+    atom.commands.dispatch(atom.views.getView(atom.workspace)
+      , 'atom-gitnote:delete')
 
 
   # atom.workspace 가 이 뷰가 제거되는지 알기위해 필요하다.
