@@ -1,5 +1,6 @@
 AtomGitNote = require '../lib/atom-gitnote'
 GitNote = require '../lib/lib-gitnote'
+MarkdownView = require '../lib/markdown-view'
 fs = require 'fs-extra'
 path = require 'path'
 nodegit = require 'nodegit'
@@ -208,3 +209,114 @@ describe "atom.GitNote", ->
         atom.packages.activatePackage('atom-gitnote')
       runs ->
         expect(editor.getTitle()).toEqual('# editor')
+
+
+  describe 'atom-gitnote:toggle-open', ->
+    it 'TextEditor -> MarkdownView, MarkdownView -> TextEditor', ->
+      waitsForPromise ->
+        activationPromise
+        .then ->
+          atom.commands.dispatch workspaceElement, 'atom-gitnote:new-markdown'
+      waitsFor ->
+        !!atom.workspace.getActiveTextEditor()
+      runs ->
+        editor = atom.workspace.getActiveTextEditor()
+        editor.setText('# Hello World')
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-open'
+      waitsFor ->
+        atom.workspace.getActivePaneItem() instanceof MarkdownView
+      runs ->
+        mdView = atom.workspace.getActivePaneItem()
+        expect(mdView.getTitle()).toEqual('@ Hello World')
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-open'
+      waitsFor ->
+        !!atom.workspace.getActiveTextEditor()
+      runs ->
+        editor = atom.workspace.getActiveTextEditor()
+        expect(editor.getText()).toEqual('# Hello World')
+
+
+  describe 'atom-gitnote:delete', ->
+    it 'TextEditor에서 노트파일이 맞다면 삭제할수 있다.', ->
+      notePath = null
+      confirm = null
+      waitsForPromise ->
+        activationPromise
+        .then ->
+          atom.commands.dispatch workspaceElement, 'atom-gitnote:new-markdown'
+      waitsFor ->
+        !!atom.workspace.getActiveTextEditor()
+      runs ->
+        editor = atom.workspace.getActiveTextEditor()
+        notePath = editor.getPath()
+        editor.setText('# Hello World')
+        editor.save()
+        expect(fs.existsSync(notePath)).toBeTruthy()
+      runs ->
+        confirm = atom.confirm
+        atom.confirm = -> 1
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:delete'
+      waitsFor ->
+        !atom.workspace.getActiveTextEditor()
+      runs ->
+        atom.confirm = confirm
+        expect(fs.existsSync(notePath)).toBeFalsy()
+
+
+    it 'MarkdownView에서도 노트파일이 맞다면 삭제할 수 있다.', ->
+      notePath = null
+      confirm = null
+      waitsForPromise ->
+        activationPromise
+        .then ->
+          atom.commands.dispatch workspaceElement, 'atom-gitnote:new-markdown'
+      waitsFor ->
+        !!atom.workspace.getActiveTextEditor()
+      runs ->
+        editor = atom.workspace.getActiveTextEditor()
+        notePath = editor.getPath()
+        editor.setText('# Hello World')
+        editor.save()
+        expect(fs.existsSync(notePath)).toBeTruthy()
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-open'
+      waitsFor ->
+        atom.workspace.getActivePaneItem() instanceof MarkdownView
+      runs ->
+        confirm = atom.confirm
+        atom.confirm = -> 1
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:delete'
+      waitsFor ->
+        !(atom.workspace.getActivePaneItem() instanceof MarkdownView)
+      runs ->
+        atom.confirm = confirm
+        expect(fs.existsSync(notePath)).toBeFalsy()
+
+
+    it '관리되지 않는 노트파일은 TextEditor에서는
+     delete 안되지만 MarkdownView에서는 delete 할수 있다.', ->
+      repo03 = path.resolve(__dirname, '../tmp/repo03')
+      dmp01 = path.resolve(repo03, 'dmp01.md')
+
+      waitsForPromise ->
+        $4.copy(path.resolve(__dirname, '../tmp/dmp01.md'), dmp01)
+        .then ->
+          atom.workspace.open(dmp01)
+      waitsFor ->
+        !!atom.workspace.getActiveTextEditor()
+      runs ->
+        atom.confirm = $4.createSpy(atom, atom.confirm)
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:delete'
+        expect(atom.confirm.wasCalled).toBeFalsy()
+        atom.confirm = atom.confirm.func
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-open'
+      waitsFor ->
+        atom.workspace.getActivePaneItem() instanceof MarkdownView
+      runs ->
+        confirm = atom.confirm
+        atom.confirm = -> 1
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:delete'
+      waitsFor ->
+        !(atom.workspace.getActivePaneItem() instanceof MarkdownView)
+      runs ->
+        atom.confirm = confirm
+        expect(fs.existsSync(dmp01)).toBeFalsy()
