@@ -40,3 +40,17 @@
 
 - [x] atom-gitnote-spec: 추가.
 - [x] atom-markdown-view-spec: 작성.
+
+
+#### v0.1.5.a
+
+- [x] makeMdEditor를 단일 파일로 분리한다. -> MarkdownEditor
+- [x] MarkdownView#scrollIntoView: 이동후 제목 강조.
+- [x] MarkdownEditor: save할때 원격 이미지 파일을 로컬로 다운로드 하기.
+- [x] markdown-editor-spec 작성.
+
+
+#### v0.1.5.b
+- [ ] MarkdownView: 원격 이미지 파일이라면 로컬에 있는지 확인하고 있다면 로컬의 이미지를 태그한다.
+- [ ] MarkdownEditor: 로컬 이미지 파일 삽입 기능 구현.
+- [ ] Notification 기능 구현한다.

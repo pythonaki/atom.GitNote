@@ -46,9 +46,10 @@ describe 'MarkdownView', ->
     it 'TextEditor에 내용이 변경되었을 때 MarkdownView의 내용도 변경된다.', ->
       waitsForPromise ->
         activationPromise
-      runs ->
-        editor.setText('# foobar')
-        editor.save()
+        .then ->
+          editor.setText('# foobar')
+          editor.save()
+
       runs ->
         element = mdView.element
         content = element.querySelector('#' + GitNote.createHeadId('foobar')).innerHTML

@@ -246,11 +246,12 @@ describe "atom.GitNote", ->
           atom.commands.dispatch workspaceElement, 'atom-gitnote:new-markdown'
       waitsFor ->
         !!atom.workspace.getActiveTextEditor()
-      runs ->
+      waitsForPromise ->
         editor = atom.workspace.getActiveTextEditor()
         notePath = editor.getPath()
         editor.setText('# Hello World')
         editor.save()
+      runs ->
         expect(fs.existsSync(notePath)).toBeTruthy()
       runs ->
         confirm = atom.confirm
@@ -272,11 +273,12 @@ describe "atom.GitNote", ->
           atom.commands.dispatch workspaceElement, 'atom-gitnote:new-markdown'
       waitsFor ->
         !!atom.workspace.getActiveTextEditor()
-      runs ->
+      waitsForPromise ->
         editor = atom.workspace.getActiveTextEditor()
         notePath = editor.getPath()
         editor.setText('# Hello World')
         editor.save()
+      runs ->
         expect(fs.existsSync(notePath)).toBeTruthy()
         atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-open'
       waitsFor ->

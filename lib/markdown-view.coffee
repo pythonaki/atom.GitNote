@@ -23,7 +23,7 @@ marked.setOptions {
   tables: true,
   breaks: false,
   pedantic: false,
-  sanitize: true,    # false 이면 html 태그들이 이스케이프 되지 않고 그대로 적용된다.
+  sanitize: false,    # false 이면 html 태그들이 이스케이프 되지 않고 그대로 적용된다.
   smartLists: true,
   smartypants: false,
   highlight: (code, lang) ->
@@ -98,7 +98,7 @@ class MarkdownView extends ScrollView
     @renderer.heading = (text, level, raw) =>
       @_title = text if(!@_title)
       headId = GitNote.createHeadId(text)
-      "<h#{level} id=\"#{headId}\">#{text}</h#{level}>"
+      "<h#{level} id=\"#{headId}\" class=\"gitnote-markdown-headline\">#{text}</h#{level}>"
       # "<a name=\"#{headId}\" class=\"gitnote-anchor\" href=\"##{headId}\">" +
       # "<span class=\"gitnote-header-link\"></span></a>" +
       # "#{text}</h#{level}>"
@@ -150,7 +150,12 @@ class MarkdownView extends ScrollView
   scrollIntoView: (id) ->
     console.log 'MarkdownView#scrollIntoView()'
     try
-      @element.querySelector('#' + id).scrollIntoViewIfNeeded()
+      el = @element.querySelector('#' + id)
+      el.scrollIntoViewIfNeeded()
+      el.classList.add('gitnote-markdown-headline-highlight')
+      setTimeout ->
+        el.classList.remove('gitnote-markdown-headline-highlight')
+      , 300
     catch err
       console.error err.stack
 

@@ -9,6 +9,7 @@ fs.remove = $4.makePromise(fs.remove)
 GitNote = require './lib-gitnote'
 FindView = require './find-view'
 MarkdownView = require './markdown-view'
+MarkdownEditor = require './markdown-editor'
 {CompositeDisposable} = require 'atom'
 resourcePath = atom.config.resourcePath
 try
@@ -16,7 +17,6 @@ try
 catch e
   # Catch error
 TextEditor = Editor ? require path.resolve resourcePath, 'src', 'text-editor'
-
 
 
 
@@ -170,44 +170,12 @@ module.exports = AtomGitNote =
       return unless evt.item instanceof TextEditor
       notePath = evt.item.getPath()
       if(path.extname(notePath) is '.md' and GitNote.isNoteFile(notePath))
-        @makeMdEditor(evt.item)
+        MarkdownEditor(evt.item)
 
     for editor in atom.workspace.getTextEditors()
       notePath = editor.getPath()
       if(path.extname(notePath) is '.md' and GitNote.isNoteFile(notePath))
-        @makeMdEditor(editor)
-
-
-  makeMdEditor: (editor) ->
-    console.log 'AtomGitNote#makeMdEditor()'
-    editor.getTitle = ->
-      title = null
-      renderer = new marked.Renderer()
-      renderer.heading = (text, level) ->
-        title = text if(!title)
-      marked(@getText(), {renderer})
-      if(title?)
-        return "\# #{title}"
-      else
-        return '# untitled'
-
-    editor.getLongTitle = ->
-      "#{@getTitle()} - #{path.basename(@buffer.getPath())}"
-
-    editor.save = ->
-      @buffer.save()
-      @emitter.emit 'did-change-title', @getTitle()
-      @emitter.emit 'saved', {target: this}
-
-    editor.saveAs = (filePath) ->
-      msg = "Don't allow saveAs!!"
-      console.error msg
-
-    # getBuff? 와 getPath? 로 gitnote와 관계된 pane인지 확인.
-    editor.getBuff = ->
-      @getBuffer()
-
-    editor.emitter.emit 'did-change-title', editor.getTitle()
+        MarkdownEditor(editor)
 
 
   findMarkdownView: (notePath) ->
