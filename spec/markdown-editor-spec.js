@@ -2,7 +2,7 @@
 
 import path from 'path';
 import {existsSync, emptyDirSync, copySync} from 'fs-extra';
-import {createImageName} from '../lib/lib-gitnote';
+import {getId, createName} from '../lib/lib-gitnote';
 import $4 from '../lib/fourdollar';
 
 
@@ -43,7 +43,7 @@ describe('MarkdownEditor', () => {
 
   describe('MarkdownEditor#save()', () => {
     it('원격지의 이미지를 노트의 위치에 다운로드 한다.', () => {
-      const img = 'https://www.google.co.kr/logos/doodles/2016/lola-flores-93rd-birthday-5451340874514432-hp.jpg'
+      const img = 'https://www.google.co.kr/logos/doodles/2016/lola-flores-93rd-birthday-5451340874514432-hp.jpg';
       waitsForPromise(() => {
         return activationPromise
         .then((editor) => {
@@ -52,7 +52,7 @@ describe('MarkdownEditor', () => {
       });
       runs(() => {
         expect(existsSync(
-          path.resolve(noteDir, createImageName(img)))).toBeTruthy();
+          path.resolve(noteDir, createName(getId(notePath), img)))).toBeTruthy();
       });
     });
   });

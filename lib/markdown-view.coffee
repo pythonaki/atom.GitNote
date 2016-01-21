@@ -99,15 +99,16 @@ class MarkdownView extends ScrollView
       @_title = text if(!@_title)
       headId = GitNote.createHeadId(text)
       "<h#{level} id=\"#{headId}\" class=\"gitnote-markdown-headline\">#{text}</h#{level}>"
-      # "<a name=\"#{headId}\" class=\"gitnote-anchor\" href=\"##{headId}\">" +
-      # "<span class=\"gitnote-header-link\"></span></a>" +
-      # "#{text}</h#{level}>"
-      # marked.Renderer.prototype.heading.call(@renderer, text, level, raw)
 
     @renderer.image = (href, title, text) =>
       {protocol, path: myPath} = url.parse(href)
       if(!protocol)
-        href = path.resolve(@buffer.getPath(), myPath)
+        href = path.resolve(path.dirname(@getPath()), myPath)
+      else if(protocol is 'http:' or protocol is 'https:')
+        imgPath = path.resolve(path.dirname(@getPath())
+          , GitNote.createName(GitNote.getId(@getPath()), href))
+        if(fs.existsSync(imgPath))
+          href = imgPath
       marked.Renderer.prototype.image.call(@renderer, href, title, text)
 
     @renderer.link = (href, title, text) =>
@@ -134,7 +135,7 @@ class MarkdownView extends ScrollView
 
 
   getLongTitle: ->
-    "#{@getTitle()} - #{path.basename(@buffer.getPath())}"
+    "#{@getTitle()} - #{path.basename(@getPath())}"
 
 
   # getBuff? 와 getPath? 로 gitnote와 관계된 pane인지 확인.

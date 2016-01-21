@@ -7,7 +7,7 @@ GitNote = require '../lib/lib-gitnote'
 
 describe 'MarkdownView', ->
   [workspaceElement, activationPromise] = []
-  dmp04 = path.resolve(__dirname, '../tmp/repo03/dmp04.md')
+  dmp04 = path.resolve(__dirname, '../tmp/repo03/notes/dmp04/dmp04.md')
   editor = null
   mdView = null
 
@@ -39,11 +39,12 @@ describe 'MarkdownView', ->
         activationPromise
       runs ->
         element = mdView.element
-        content = element.querySelector('#' + GitNote.createHeadId('Hello World')).innerHTML
+        content = element.querySelector(
+          '#' + GitNote.createHeadId('Hello World')).innerHTML
         expect(content).toEqual('Hello World')
 
 
-    it 'TextEditor에 내용이 변경되었을 때 MarkdownView의 내용도 변경된다.', ->
+    it 'MarkdownEditor에 내용이 변경되었을 때 MarkdownView의 내용도 변경된다.', ->
       waitsForPromise ->
         activationPromise
         .then ->
@@ -54,6 +55,21 @@ describe 'MarkdownView', ->
         element = mdView.element
         content = element.querySelector('#' + GitNote.createHeadId('foobar')).innerHTML
         expect(content).toEqual('foobar')
+
+
+    it 'MarkdownEditor에 의해 이미지가 다운로드 됐으면 MarkdownView <img> src도 로컬 이미지 경로로 바뀐다.', ->
+      waitsForPromise ->
+        activationPromise
+        .then ->
+          editor.setText('# Naver\n![naver](http://img.naver.net/static/www/u/2013/0731/nmms_224940510.gif)')
+          editor.save()
+
+      runs ->
+        imgPath = path.resolve(path.dirname(dmp04)
+          , GitNote.createName(GitNote.getId(dmp04), 'http://img.naver.net/static/www/u/2013/0731/nmms_224940510.gif'))
+        element = mdView.element
+        imgs = element.querySelectorAll("img[src=\"#{imgPath}\"]")
+        expect(imgs.length).toEqual(1)
 
 
   describe 'buffer destroy', ->
