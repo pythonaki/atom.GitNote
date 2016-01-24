@@ -4,27 +4,31 @@ import path from 'path';
 import {existsSync, emptyDirSync, copySync} from 'fs-extra';
 import {getId, createName} from '../lib/lib-gitnote';
 import $4 from '../lib/fourdollar';
+import GitNote from '../lib/lib-gitnote';
+
+
 
 
 
 describe('MarkdownEditor', () => {
-  const noteDir = path.resolve(__dirname, '../tmp/notes/note01');
-  const notePath = path.resolve(noteDir, 'note01.md');
+  const noteDir = path.resolve(__dirname, '../tmp/repo03')
   let [workspaceElement, activationPromise] = [];
   let editor = null;
 
-  emptyDirSync(path.resolve(__dirname, '../tmp/notes'));
-  copySync(path.resolve(__dirname, '../tmp/note01.md'), notePath);
+  const createNotePath = function() {
+    const id = GitNote._createId();
+    return path.resolve(noteDir, 'notes', `${id}/${id}.md`);
+  }
 
   beforeEach(() => {
-    atom.config.set('atom-gitnote.notePath', path.resolve(__dirname, '../tmp/repo03'));
+    atom.config.set('atom-gitnote.notePath', noteDir);
     workspaceElement = atom.views.getView(atom.workspace);
     activationPromise = atom.packages.activatePackage('atom-gitnote')
     .then(() => {
-      return atom.workspace.open(notePath);
+      return atom.workspace.open(createNotePath());
     })
-    .then((editor_) => {
-      return editor = editor_;
+    .then((_editor) => {
+      return editor = _editor;
     });
   });
 
@@ -32,7 +36,11 @@ describe('MarkdownEditor', () => {
   describe('MarkdownEditor#getTitle()', () => {
     it('MarkdownEditor 제목을 가져온다.', () => {
       waitsForPromise(() => {
-        return activationPromise;
+        return activationPromise
+        .then((editor) => {
+          editor.setText('# google');
+          return editor.save();
+        });
       });
       runs(() => {
         expect(editor.getTitle()).toEqual('# google');
@@ -47,13 +55,79 @@ describe('MarkdownEditor', () => {
       waitsForPromise(() => {
         return activationPromise
         .then((editor) => {
+          editor.setText(`# google\n![image](${img})`);
           return editor.save();
         });
       });
       runs(() => {
-        expect(existsSync(
-          path.resolve(noteDir, createName(getId(notePath), img)))).toBeTruthy();
+        const imgPath = path.resolve(path.dirname(editor.getPath())
+          , createName(getId(editor.getPath()), img));
+        console.log('img path: ', imgPath);
+        expect(existsSync(imgPath)).toBeTruthy();
       });
     });
   });
+
+
+  describe('MarkdownEditor#addSavingFile()', () => {
+    it('로컬 이미지를 노트 위치에 복사한다.', () => {
+      const naverImg = path.resolve(__dirname, '../tmp/naver.gif');
+      let savingImg = null;
+      waitsForPromise(() => {
+        return activationPromise
+        .then((editor) => {
+          editor.setText('# Naver Image\n');
+          editor.moveToBottom();
+          savingImg = editor.addSavingFile(naverImg);
+          return editor.save();
+        });
+      });
+
+      runs(() => {
+        expect(existsSync(path.resolve(path.dirname(editor.getPath())
+          , savingImg))).toBeTruthy();
+      });
+    });
+  });
+
+
+  describe('MarkdownEditor Events', () => {
+    it('MarkdownEditor#onSuccess()', () => {
+      let sucEvt;
+      waitsForPromise(() => {
+        return activationPromise
+        .then((editor) => {
+          editor.onSuccess((evt) => {
+            sucEvt = evt;
+          });
+          editor.emitter.emit('success', {target: editor, message: 'success!!'});
+        });
+      });
+
+      runs(() => {
+        expect(sucEvt.target).toEqual(editor);
+        expect(sucEvt.message).toEqual('success!!');
+      });
+    });
+
+    it('MarkdownEditor#onError()', () => {
+      let errEvt;
+      waitsForPromise(() => {
+        return activationPromise
+        .then((editor) => {
+          editor.onError((evt) => {
+            errEvt = evt;
+          });
+          editor.emitter.emit('error'
+            , {target: editor, message: 'error!!'});
+        });
+      });
+
+      runs(() => {
+        expect(errEvt.target).toEqual(editor);
+        expect(errEvt.message).toEqual('error!!');
+      });
+    });
+  });
+
 });

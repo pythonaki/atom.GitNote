@@ -15,3 +15,6 @@
 
 '.gitnote-markdown-view':
   'cmd-c': 'atom-gitnote:copy'
+
+'.editor':
+  'ctrl-alt-i': 'atom-gitnote:insert-image'

@@ -57,5 +57,7 @@
 
 #### v0.1.5c
 
-- [ ] MarkdownEditor: 로컬 이미지 파일 삽입 기능 구현.
-- [ ] Notification 기능 구현한다.
+- [x] MarkdownEditor: 로컬 이미지 파일 삽입 기능 구현.
+- [x] MarkdownView#setupRenderer(): 'gitnote:' 프로토콜 이미지를 적합하게 바꾸기.
+- [x] MarkdownEditor#save(): onSuccess, onError 작성.
+- [x] AtomGitNote: Notification 기능 구현한다.

@@ -170,12 +170,22 @@ module.exports = AtomGitNote =
       return unless evt.item instanceof TextEditor
       notePath = evt.item.getPath()
       if(path.extname(notePath) is '.md' and GitNote.isNoteFile(notePath))
-        MarkdownEditor(evt.item)
+        @createMdEditor(evt.item)
 
     for editor in atom.workspace.getTextEditors()
       notePath = editor.getPath()
       if(path.extname(notePath) is '.md' and GitNote.isNoteFile(notePath))
-        MarkdownEditor(editor)
+        @createMdEditor(editor)
+
+
+  createMdEditor: (editor) ->
+    mdEditor = MarkdownEditor(editor)
+    mdEditor.onSuccess (evt) ->
+      atom.notifications.addSuccess evt.target.getTitle().slice(2)
+        , {detail: evt.message}
+    mdEditor.onError (evt) ->
+      atom.notifications.addError evt.target.getTitle().slice(2)
+        , {detail: evt.message}
 
 
   findMarkdownView: (notePath) ->

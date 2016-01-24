@@ -101,7 +101,7 @@ class MarkdownView extends ScrollView
       "<h#{level} id=\"#{headId}\" class=\"gitnote-markdown-headline\">#{text}</h#{level}>"
 
     @renderer.image = (href, title, text) =>
-      {protocol, path: myPath} = url.parse(href)
+      {protocol, path: myPath, host} = url.parse(href)
       if(!protocol)
         href = path.resolve(path.dirname(@getPath()), myPath)
       else if(protocol is 'http:' or protocol is 'https:')
@@ -109,6 +109,8 @@ class MarkdownView extends ScrollView
           , GitNote.createName(GitNote.getId(@getPath()), href))
         if(fs.existsSync(imgPath))
           href = imgPath
+      else if(protocol is 'gitnote:')
+        href = path.resolve(path.dirname(@getPath()), host)
       marked.Renderer.prototype.image.call(@renderer, href, title, text)
 
     @renderer.link = (href, title, text) =>

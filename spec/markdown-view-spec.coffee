@@ -17,8 +17,8 @@ describe 'MarkdownView', ->
     activationPromise = atom.packages.activatePackage('atom-gitnote')
     .then ->
       atom.workspace.open(dmp04)
-    .then (editor_) ->
-      editor = editor_
+    .then (_editor) ->
+      editor = _editor
       editor.setText('# Hello World')
       atom.workspace.open('markdown-view://' + dmp04)
     .then (mdView_) ->
@@ -67,6 +67,24 @@ describe 'MarkdownView', ->
       runs ->
         imgPath = path.resolve(path.dirname(dmp04)
           , GitNote.createName(GitNote.getId(dmp04), 'http://img.naver.net/static/www/u/2013/0731/nmms_224940510.gif'))
+        element = mdView.element
+        imgs = element.querySelectorAll("img[src=\"#{imgPath}\"]")
+        expect(imgs.length).toEqual(1)
+
+
+    it 'gitnote: 프로토콜 이미지를 올바른 url로 바꾼다.', ->
+      naverImg = path.resolve(__dirname, '../tmp/naver.gif')
+      savingImg = null;
+      waitsForPromise ->
+        activationPromise
+        .then ->
+          editor.setText('# Naver Image\n')
+          editor.moveToBottom()
+          savingImg = editor.addSavingFile(naverImg)
+          editor.save()
+
+      runs ->
+        imgPath = path.resolve path.dirname(editor.getPath()), savingImg
         element = mdView.element
         imgs = element.querySelectorAll("img[src=\"#{imgPath}\"]")
         expect(imgs.length).toEqual(1)

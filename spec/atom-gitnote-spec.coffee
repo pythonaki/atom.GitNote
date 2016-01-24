@@ -199,8 +199,8 @@ describe "atom.GitNote", ->
         .then (notePath_) ->
           notePath = notePath_
           atom.workspace.open(notePath)
-        .then (editor_) ->
-          editor = editor_
+        .then (_editor) ->
+          editor = _editor
           editor.setText('## editor')
       runs ->
         expect(editor.getTitle()).toEqual(path.basename(notePath))
@@ -322,3 +322,47 @@ describe "atom.GitNote", ->
       runs ->
         atom.confirm = confirm
         expect(fs.existsSync(dmp01)).toBeFalsy()
+
+
+  describe 'Notification', ->
+    repo03 = path.resolve(__dirname, '../tmp/repo03')
+
+    it 'MarkdownEditor를 save 할때 Success Notification 창을 띄운다.', ->
+      editor = null
+      noti = null
+      atom.notifications.onDidAddNotification (_noti) ->
+        noti = _noti
+
+      waitsForPromise ->
+        activationPromise
+        .then ->
+          atom.workspace.open(path.resolve(repo03, 'notes/success/success.md'))
+        .then (_editor) ->
+          editor = _editor
+          editor.setText('# Test Success Notification')
+          editor.save()
+
+      runs ->
+        expect(noti.type).toEqual('success')
+        expect(noti.message).toEqual('Test Success Notification')
+
+
+    it 'MarkdownEditor를 error가 있을 때 Error Notification 창을 띄운다.', ->
+      editor = null
+      noti = null
+      atom.notifications.onDidAddNotification (_noti) ->
+        noti = _noti
+
+      waitsForPromise ->
+        activationPromise
+        .then ->
+          atom.workspace.open(path.resolve(repo03, 'notes/error/error.md'))
+        .then (_editor) ->
+          editor = _editor
+          editor.setText(
+            '# Test Error Notification\n![error](http://foobar.jpg)')
+          editor.save()
+
+      runs ->
+        expect(noti.type).toEqual('error')
+        expect(noti.message).toEqual('Test Error Notification')
