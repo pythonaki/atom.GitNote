@@ -7,6 +7,7 @@ DmpEditor = require './dmp-editor'
 $4 = require './fourdollar'
 $4.node()
 fs = require 'fs-extra'
+rr = require './rather'
 
 
 fs.remove = $4.makePromise(fs.remove)
@@ -104,7 +105,7 @@ class MarkdownView extends ScrollView
       {protocol, path: myPath, host} = url.parse(href)
       if(!protocol)
         href = path.resolve(path.dirname(@getPath()), myPath)
-      else if(protocol is 'http:' or protocol is 'https:')
+      else if((protocol is 'http:' or protocol is 'https:') and (rr.isImageFile(href)))
         imgPath = path.resolve(path.dirname(@getPath())
           , GitNote.createName(GitNote.getId(@getPath()), href))
         if(fs.existsSync(imgPath))

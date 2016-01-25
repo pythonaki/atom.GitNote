@@ -130,4 +130,32 @@ describe('MarkdownEditor', () => {
     });
   });
 
+
+  describe('etc', () => {
+    it('노트파일의 폴더를 미리 만들지 않는다.', () => {
+      const naverImg = path.resolve(__dirname, '../tmp/naver.gif');
+      waitsForPromise(() => {
+        return activationPromise
+        .then((editor) => {
+          editor.setText('# Hasty');
+        });
+      });
+
+      runs(() => {
+        const exists = existsSync(path.dirname(editor.getPath()));
+        expect(exists).toBeFalsy();
+      });
+
+      waitsForPromise(() => {
+        editor.addSavingFile(naverImg);
+        return editor.save();
+      });
+
+      runs(() => {
+        const exists = existsSync(path.dirname(editor.getPath()));
+        expect(exists).toBeTruthy();
+      });
+    });
+  });
+
 });

@@ -61,3 +61,13 @@
 - [x] MarkdownView#setupRenderer(): 'gitnote:' 프로토콜 이미지를 적합하게 바꾸기.
 - [x] MarkdownEditor#save(): onSuccess, onError 작성.
 - [x] AtomGitNote: Notification 기능 구현한다.
+
+
+#### v0.1.6a
+
+- [x] MarkdownEditor: 해당 노트파일의 폴더를 미리 만들지 않는다.
+
+
+#### v0.1.6b
+
+- [ ] bugfix: 원격 이미지 중 다운로드 되지 않는 것이 있다. (https://badge.fury.io/js/marked.png)(http://img.shields.io/npm/dm/fs-extra.svg)
