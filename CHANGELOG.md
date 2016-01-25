@@ -70,4 +70,4 @@
 
 #### v0.1.6b
 
-- [ ] bugfix: 원격 이미지 중 다운로드 되지 않는 것이 있다. (https://badge.fury.io/js/marked.png)(http://img.shields.io/npm/dm/fs-extra.svg)
+- [x] bugfix: 원격 이미지 중 다운로드 되지 않는 것이 있다. (https://badge.fury.io/js/marked.png)(http://img.shields.io/npm/dm/fs-extra.svg)
