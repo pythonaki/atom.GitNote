@@ -36,11 +36,15 @@ describe('MarkdownEditor', () => {
   describe('MarkdownEditor#getTitle()', () => {
     it('MarkdownEditor 제목을 가져온다.', () => {
       waitsForPromise(() => {
-        return activationPromise
-        .then((editor) => {
-          editor.setText('# google');
-          return editor.save();
-        });
+        return activationPromise;
+      });
+      runs(() => {
+        expect(editor.getTitle()).toEqual(`# ${path.basename(editor.getPath())}`);
+      });
+
+      waitsForPromise(() => {
+        editor.setText('# google');
+        return editor.save();
       });
       runs(() => {
         expect(editor.getTitle()).toEqual('# google');

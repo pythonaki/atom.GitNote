@@ -71,3 +71,9 @@
 #### v0.1.6b
 
 - [x] bugfix: 원격 이미지 중 다운로드 되지 않는 것이 있다. (https://badge.fury.io/js/marked.png)(http://img.shields.io/npm/dm/fs-extra.svg)
+
+
+#### v0.1.6c
+
+- [x] bugfix: MarkdownEditor: 이미지 파일창이 여러번 열린다.
+- [x] 외부 Editor에서 .md를 MarkdownView 로 볼때 제목 `@ untitled` 를 .md 파일명으로.

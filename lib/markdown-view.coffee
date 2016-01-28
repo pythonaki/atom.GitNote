@@ -133,12 +133,14 @@ class MarkdownView extends ScrollView
   getTitle: ->
     if(@_title)
       "\@ #{@_title}"
+    else if(@getPath())
+      "\@ #{path.basename(@getPath())}"
     else
       '@ untitled'
 
 
   getLongTitle: ->
-    "#{@getTitle()} - #{path.basename(@getPath())}"
+    "#{@getTitle()} - #{@getPath()}"
 
 
   # getBuff? 와 getPath? 로 gitnote와 관계된 pane인지 확인.

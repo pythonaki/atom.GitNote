@@ -31,6 +31,11 @@ describe 'MarkdownView', ->
         activationPromise
       runs ->
         expect(mdView.getTitle()).toEqual('@ Hello World')
+      waitsForPromise ->
+        editor.setText('- no title')
+        editor.save()
+      runs ->
+        expect(mdView.getTitle()).toEqual("@ #{path.basename(mdView.getPath())}")
 
 
   describe 'MarkdownView#updateMarkdown()', ->
