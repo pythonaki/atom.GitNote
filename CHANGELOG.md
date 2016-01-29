@@ -77,3 +77,8 @@
 
 - [x] bugfix: MarkdownEditor: 이미지 파일창이 여러번 열린다.
 - [x] 외부 Editor에서 .md를 MarkdownView 로 볼때 제목 `@ untitled` 를 .md 파일명으로.
+
+
+#### v0.1.6d
+
+- [x] gitnote: 프로토콜 없애기.

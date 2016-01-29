@@ -110,8 +110,8 @@ class MarkdownView extends ScrollView
           , GitNote.createName(GitNote.getId(@getPath()), href))
         if(fs.existsSync(imgPath))
           href = imgPath
-      else if(protocol is 'gitnote:')
-        href = path.resolve(path.dirname(@getPath()), host)
+      # else if(protocol is 'gitnote:')
+      #   href = path.resolve(path.dirname(@getPath()), host)
       marked.Renderer.prototype.image.call(@renderer, href, title, text)
 
     @renderer.link = (href, title, text) =>

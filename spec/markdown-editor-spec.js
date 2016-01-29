@@ -8,8 +8,6 @@ import GitNote from '../lib/lib-gitnote';
 
 
 
-
-
 describe('MarkdownEditor', () => {
   const noteDir = path.resolve(__dirname, '../tmp/repo03')
   let [workspaceElement, activationPromise] = [];

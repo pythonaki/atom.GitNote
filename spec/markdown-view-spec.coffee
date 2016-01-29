@@ -1,4 +1,5 @@
 path = require 'path'
+fs = require 'fs'
 $4 = require '../lib/fourdollar'
 $4.debug()
 GitNote = require '../lib/lib-gitnote'
@@ -77,7 +78,7 @@ describe 'MarkdownView', ->
         expect(imgs.length).toEqual(1)
 
 
-    it 'gitnote: 프로토콜 이미지를 올바른 url로 바꾼다.', ->
+    it '로컬 이미지를 올바른 url로 바꾼다.', ->
       naverImg = path.resolve(__dirname, '../tmp/naver.gif')
       savingImg = null;
       waitsForPromise ->
@@ -93,6 +94,7 @@ describe 'MarkdownView', ->
         element = mdView.element
         imgs = element.querySelectorAll("img[src=\"#{imgPath}\"]")
         expect(imgs.length).toEqual(1)
+        expect(fs.existsSync(imgPath)).toBeTruthy()
 
 
   describe 'buffer destroy', ->
