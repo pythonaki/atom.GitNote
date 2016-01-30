@@ -3,6 +3,7 @@ url = require 'url'
 marked = require 'marked'
 $4 = require './fourdollar'
 fs = require 'fs-extra'
+rr = require './rather'
 
 fs.remove = $4.makePromise(fs.remove)
 
@@ -43,7 +44,6 @@ module.exports = AtomGitNote =
 
   activate: (state) ->
     console.log 'AtomGitNote#activate()'
-    @setupOpener()
 
     # Events subscribed to in atom's system can be easily cleaned up with a CompositeDisposable
     @disposables = new CompositeDisposable
@@ -53,6 +53,7 @@ module.exports = AtomGitNote =
     @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:toggle-open': => @toggleOpen()
     @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:delete': => @deleteNote()
 
+    @setupOpener()
     @setupFindView()
     @setupMdEditor()
 
@@ -107,7 +108,7 @@ module.exports = AtomGitNote =
 
     if path.extname(notePath) is '.md'
       if activePane instanceof TextEditor
-        atom.workspace.open('markdown-view://' + notePath, split: 'left')
+        atom.workspace.open('gitnote://' + notePath, split: 'left')
       else if activePane instanceof MarkdownView
         atom.workspace.open(notePath, split: 'left')
 
@@ -135,13 +136,17 @@ module.exports = AtomGitNote =
     atom.workspace.addOpener (uriToOpen) =>
       console.log 'AtomGitNote#addOpener(): ', uriToOpen
       try
-        {protocol, host, path: myPath} = url.parse(uriToOpen)
+        parsed = rr.parseGitNoteUri(uriToOpen)
+        console.log 'parsed: ', parsed
       catch err
         console.log err.stack
         return
+      if(parsed)
+        return @findMarkdownView(parsed)
 
-      if(protocol is 'markdown-view:')
-        return @findMarkdownView(host + myPath)
+    @disposables.add atom.workspace.onDidOpen (evt) =>
+      # MarkdownView.scrollNow()
+      evt.item.scrollNow?()
 
 
   setupFindView: ->
@@ -152,11 +157,12 @@ module.exports = AtomGitNote =
     @findView.onConfirmed (note) =>
       console.log 'onConfirmed: ', note.id
       @modal.hide()
-      uri = 'markdown-view://' + note.path
-      # uri += "\##{note.headId}" if note.headId
+      uri = 'gitnote://' + note.path
+      uri += "\##{note.headId}" if note.headId
+      console.log 'uri: ', uri
       atom.workspace.open(uri, split: 'left')
-      .then (mdView) ->
-        mdView.scrollIntoView(note.headId) if note.headId
+      # .then (mdView) ->
+      #   mdView.scrollIntoView(note.headId) if note.headId
 
     @findView.onCancelled () =>
       console.log 'This view was cancelled'
@@ -188,14 +194,36 @@ module.exports = AtomGitNote =
         , {detail: evt.message}
 
 
-  findMarkdownView: (notePath) ->
+  # findMarkdownView: (notePah) ->
+  #   console.log 'AtomGitNote#findMarkdownView()'
+  #   for view in atom.workspace.getPaneItems()
+  #     if (view instanceof MarkdownView) and path.resolve(view.getPath()) is path.resolve(notePath)
+  #       return Promise.resolve(view)
+  #   atom.project.bufferForPath(notePath)
+  #   .then (buffer) ->
+  #     new MarkdownView(buffer)
+
+
+  findMarkdownView: (parsed) ->
     console.log 'AtomGitNote#findMarkdownView()'
+
+    uri = rr.formatGitNoteUri(parsed, ['hash'])
     for view in atom.workspace.getPaneItems()
-      if (view instanceof MarkdownView) and path.resolve(view.getPath()) is path.resolve(notePath)
+      if (view instanceof MarkdownView) and view.getUri() is uri
+        view.scrollIntoView(parsed.hash) if parsed.hash
         return Promise.resolve(view)
-    atom.project.bufferForPath(notePath)
-    .then (buffer) ->
-      new MarkdownView(buffer)
+    if parsed.auth and parsed.repository
+      # 원격지 라면.. 처리..
+    else if parsed.auth or parsed.repository
+      # error 처리..
+    else if !parsed.pathname
+      # error 처리..
+    else
+      atom.project.bufferForPath(parsed.pathname) # 절대 경로 이어야함.
+      .then (buffer) ->
+        view = new MarkdownView(buffer, uri)
+        view.scrollIntoView(parsed.hash) if parsed.hash
+        view
 
 
   getNote: (notePath) ->

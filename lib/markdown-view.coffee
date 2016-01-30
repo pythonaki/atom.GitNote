@@ -61,11 +61,14 @@ class MarkdownView extends ScrollView
   emitter: null
   disposables: null
   renderer: null
+  _hash: null
 
 
-  constructor: (@buffer) ->
+  constructor: (@buffer, @uri) ->
     console.log 'MarkdownView#constructor()'
     super()
+
+    console.log 'this: ', this
 
     @editor = new DmpEditor(@buffer)
     @emitter = new Emitter
@@ -75,6 +78,7 @@ class MarkdownView extends ScrollView
     @setupRenderer()
     @setupBuffer()
     @updateMarkdown()
+
 
 
   destroy: ->
@@ -143,6 +147,10 @@ class MarkdownView extends ScrollView
     "#{@getTitle()} - #{@getPath()}"
 
 
+  getUri: ->
+    @uri
+
+
   # getBuff? 와 getPath? 로 gitnote와 관계된 pane인지 확인.
   getPath: ->
     @buffer.getPath()
@@ -152,18 +160,26 @@ class MarkdownView extends ScrollView
   getBuff: ->
     @buffer
 
-
-  scrollIntoView: (id) ->
+  # naki::todo active 상태인지 확인하고 active 라면 scroll, 아니라면 active 이벤트에서 scroll
+  # hash가 id 인지 name 인지 ..
+  scrollIntoView: (@_hash) ->
     console.log 'MarkdownView#scrollIntoView()'
-    try
-      el = @element.querySelector('#' + id)
-      el.scrollIntoViewIfNeeded()
-      el.classList.add('gitnote-markdown-headline-highlight')
-      setTimeout ->
-        el.classList.remove('gitnote-markdown-headline-highlight')
-      , 300
-    catch err
-      console.error err.stack
+
+
+  scrollNow: () ->
+    console.log 'MarkdownView#scrollNow()'
+    if @_hash
+      try
+        el = @element.querySelector(@_hash)
+        el = @element.querySelector("[name=\"#{@_hash.slice(1)}\"]") if !el
+        el.scrollIntoViewIfNeeded()
+        el.classList.add('gitnote-markdown-headline-highlight')
+        setTimeout ->
+          el.classList.remove('gitnote-markdown-headline-highlight')
+        , 300
+        @_hash = null
+      catch err
+        console.error err.stack
 
 
   isActive: ->

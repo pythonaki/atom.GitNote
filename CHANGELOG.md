@@ -82,3 +82,9 @@
 #### v0.1.6d
 
 - [x] gitnote: 프로토콜 없애기.
+
+
+#### v0.1.7a
+
+- [x] atom.workspace.open() 에서 'gitnote:' 프로토콜 사용.
+  - gitnote:///this/is/path/note.md#hash :: 해당 경로에서 가져온다.

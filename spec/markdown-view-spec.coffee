@@ -21,7 +21,7 @@ describe 'MarkdownView', ->
     .then (_editor) ->
       editor = _editor
       editor.setText('# Hello World')
-      atom.workspace.open('markdown-view://' + dmp04)
+      atom.workspace.open('gitnote://' + dmp04)
     .then (mdView_) ->
       mdView = mdView_
 
