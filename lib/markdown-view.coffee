@@ -56,45 +56,36 @@ class MarkdownView extends ScrollView
       @div class: 'gitnote-markdown-content'
 
 
-  buffer: null
-  editor: null
   emitter: null
   disposables: null
+  bufferDispos: null
   renderer: null
+  buffer: null
+  editor: null
+  uri: null
   _hash: null
 
 
-  constructor: (@buffer, @uri) ->
+  constructor: (uri) ->
     console.log 'MarkdownView#constructor()'
     super()
 
-    console.log 'this: ', this
-
-    @editor = new DmpEditor(@buffer)
-    @emitter = new Emitter
-    @disposables = new CompositeDisposable
+    @emitter = new Emitter()
+    @disposables = new CompositeDisposable()
     @disposables.add atom.commands.add @element, 'atom-gitnote:copy': => @copySelectedText()
+    @bufferDispos = new CompositeDisposable()
 
     @setupRenderer()
-    @setupBuffer()
-    @updateMarkdown()
-
+    @goto(uri) if uri
 
 
   destroy: ->
     console.log 'MarkdownView#destroy()'
     @disposables.dispose()
     @element.remove()
-    @editor.destroy()
+    @bufferDispos?.dispose()
+    @editor?.destroy()
     @emitter.emit 'did-destroy'
-
-
-  setupBuffer: () ->
-    console.log 'MarkdownView#setupBuffer()'
-    @disposables.add @buffer.onDidSave => @updateMarkdown()
-    @disposables.add @buffer.onDidDestroy =>
-      console.log 'setupBuffer: buffer#onDidDestroy'
-      @destroy()
 
 
   setupRenderer: () ->
@@ -126,6 +117,16 @@ class MarkdownView extends ScrollView
       result
 
 
+  setupBuffer: (buffer) ->
+    console.log 'MarkdownView#setupBuffer()'
+    @bufferDispos?.dispose()
+    @editor?.destroy()
+    @buffer = buffer
+    @editor = new DmpEditor(buffer)
+    @bufferDispos.add @buffer.onDidSave => @updateMarkdown()
+    @bufferDispos.add @buffer.onDidDestroy => @destroy()
+
+
   updateMarkdown: ->
     console.log 'MarkdownView#updateMarkdown()'
     @_title = null
@@ -153,21 +154,48 @@ class MarkdownView extends ScrollView
 
   # getBuff? 와 getPath? 로 gitnote와 관계된 pane인지 확인.
   getPath: ->
-    @buffer.getPath()
+    @buffer?.getPath()
 
 
   # getBuff? 와 getPath? 로 gitnote와 관계된 pane인지 확인.
   getBuff: ->
     @buffer
 
-  # naki::todo active 상태인지 확인하고 active 라면 scroll, 아니라면 active 이벤트에서 scroll
+
   # hash가 id 인지 name 인지 ..
+  goto: (uri) ->
+    console.log 'MarkdownView#goto()'
+    parsed = rr.parseGitNoteUri(uri)
+    if @uri and rr.equalGitNoteUri(@uri, uri)
+      @uri = uri
+      @scrollIntoView(parsed.hash) if parsed.hash
+      return Promise.resolve(this)
+
+    @uri = uri
+    if parsed.auth and parsed.repository
+      # 원격지 라면.. 처리..
+    else if parsed.auth or parsed.repository
+      # error 처리..
+    else if !parsed.pathname
+      # error 처리..
+    else
+      return atom.project.bufferForPath(parsed.pathname) # 절대 경로 이어야함.
+      .then (buffer) =>
+        @setupBuffer(buffer)
+        @updateMarkdown()
+        @scrollIntoView(parsed.hash) if parsed.hash
+        this
+
+    Promise.resolve(this)
+
+
   scrollIntoView: (@_hash) ->
     console.log 'MarkdownView#scrollIntoView()'
+    if atom.workspace.getActivePaneItem() is this
+      @scrollNow()
 
 
-  scrollNow: () ->
-    console.log 'MarkdownView#scrollNow()'
+  scrollNow: ->
     if @_hash
       try
         el = @element.querySelector(@_hash)
@@ -180,6 +208,7 @@ class MarkdownView extends ScrollView
         @_hash = null
       catch err
         console.error err.stack
+
 
 
   isActive: ->

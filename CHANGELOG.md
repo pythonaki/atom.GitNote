@@ -88,3 +88,8 @@
 
 - [x] atom.workspace.open() 에서 'gitnote:' 프로토콜 사용.
   - gitnote:///this/is/path/note.md#hash :: 해당 경로에서 가져온다.
+
+
+#### v0.1.7b
+
+- [x] gitnote: uri 의 모든 처리는 MarkdownView 가 한다. (#goto())

@@ -117,3 +117,16 @@ describe 'MarkdownView', ->
         editor.destroy()
         mdView.destroy()
         expect(buffer.destroy.wasCalled).toBeTruthy()
+
+
+  describe 'MarkdownView#goto()', ->
+    it '해당 hash로 하이라이트 된다.', ->
+      id = GitNote.createHeadId('Hello World')
+      waitsForPromise ->
+        activationPromise
+        .then (mdView) ->
+          mdView.goto('gitnote://' + dmp04 + "\##{id}")
+      runs ->
+        el = mdView.element.querySelector("\##{id}")
+        expect(el).toBeTruthy()
+        expect(el.classList.contains('gitnote-markdown-headline-highlight')).toBeTruthy()

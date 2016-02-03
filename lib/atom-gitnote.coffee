@@ -89,7 +89,7 @@ module.exports = AtomGitNote =
     AtomGitNote.getNote()
     .then (gitNote) ->
       gitNote.create(ext)
-    .then (notePath) ->
+    .then (notePath) =>
       atom.workspace.open(notePath) # TextEditor를 Promise로 리턴한다.
     .then (editor) =>
       @newNoteCalled = true
@@ -132,17 +132,30 @@ module.exports = AtomGitNote =
           console.error e.stack
 
 
+  # open: (uri, options) ->
+  #   atom.workspace.open(uri, options)
+  #   .then (view) ->
+  #     if view instanceof MarkdownView
+  #       console.log 'view.goto()'
+  #       return view.goto(uri)
+  #     view
+
+
   setupOpener: ->
     atom.workspace.addOpener (uriToOpen) =>
       console.log 'AtomGitNote#addOpener(): ', uriToOpen
       try
         parsed = rr.parseGitNoteUri(uriToOpen)
-        console.log 'parsed: ', parsed
       catch err
         console.log err.stack
         return
       if(parsed)
-        return @findMarkdownView(parsed)
+        if(parsed.extname in rr.mdExts) # markdown
+          for view in atom.workspace.getPaneItems()
+            if (view instanceof MarkdownView) and rr.equalGitNoteUri(uriToOpen, view.getUri())
+              view.goto(uriToOpen)
+              return Promise.resolve(view)
+          return Promise.resolve(new MarkdownView(uriToOpen))
 
     @disposables.add atom.workspace.onDidOpen (evt) =>
       # MarkdownView.scrollNow()
