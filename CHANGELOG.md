@@ -93,3 +93,10 @@
 #### v0.1.7b
 
 - [x] gitnote: uri 의 모든 처리는 MarkdownView 가 한다. (#goto())
+
+
+#### v0.1.7c
+
+- [x] rather.js: gitnoteUri 구현을 보다 유용하게.
+- [x] MarkdownView#goto(): 좀더 다듬자.
+- [x] MarkdownView: onSuccess, onError.

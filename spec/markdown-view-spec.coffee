@@ -130,3 +130,44 @@ describe 'MarkdownView', ->
         el = mdView.element.querySelector("\##{id}")
         expect(el).toBeTruthy()
         expect(el.classList.contains('gitnote-markdown-headline-highlight')).toBeTruthy()
+
+    it '유효하지 않은 uri이라면 onError 될 것이다.', ->
+      [error, errEvt, undef] = []
+      waitsForPromise ->
+        activationPromise
+        .then (mdView) ->
+          mdView.onError (evt) ->
+            errEvt = evt
+          mdView.goto('gitnote:auth@repo/foo/bar/note.md')
+        .catch (_err) ->
+          error = _err
+      runs ->
+        expect(error).toBeDefined()
+        expect(errEvt).toBeDefined()
+        expect(undef).toBeUndefined()
+
+
+  describe 'MarkdownView Events', ->
+    it 'MarkdownView#onSuccess()', ->
+      sucEvt = null;
+      waitsForPromise ->
+        activationPromise
+        .then (mdView) ->
+          mdView.onSuccess (evt) ->
+            sucEvt = evt
+          mdView.emitter.emit 'success', {target: mdView, message: 'success!!'}
+      runs ->
+        expect(sucEvt.target).toEqual(mdView)
+        expect(sucEvt.message).toEqual('success!!')
+
+    it 'MarkdownView#onError()', ->
+      errEvt = null;
+      waitsForPromise ->
+        activationPromise
+        .then (mdView) ->
+          mdView.onError (evt) ->
+            errEvt = evt
+          mdView.emitter.emit 'error', {target: mdView, message: 'error!!'}
+      runs ->
+        expect(errEvt.target).toEqual(mdView)
+        expect(errEvt.message).toEqual('error!!')

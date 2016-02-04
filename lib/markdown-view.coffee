@@ -7,7 +7,7 @@ DmpEditor = require './dmp-editor'
 $4 = require './fourdollar'
 $4.node()
 fs = require 'fs-extra'
-rr = require './rather'
+{isImageFile, gitnoteUri} = require './rather'
 
 
 fs.remove = $4.makePromise(fs.remove)
@@ -100,7 +100,7 @@ class MarkdownView extends ScrollView
       {protocol, path: myPath, host} = url.parse(href)
       if(!protocol)
         href = path.resolve(path.dirname(@getPath()), myPath)
-      else if((protocol is 'http:' or protocol is 'https:') and (rr.isImageFile(href)))
+      else if((protocol is 'http:' or protocol is 'https:') and (isImageFile(href)))
         imgPath = path.resolve(path.dirname(@getPath())
           , GitNote.createName(GitNote.getId(@getPath()), href))
         if(fs.existsSync(imgPath))
@@ -135,6 +135,37 @@ class MarkdownView extends ScrollView
     @updateTitle()
 
 
+  goto: (uri) ->
+    console.log 'MarkdownView#goto()'
+    # 유효하지 않은 uri 이라면..
+    unless gitnoteUri.valid(uri)
+      msg = 'MarkdownView#goto(): 유효하지 않은 uri 이다.'
+      @emitter.emit 'error', {target: this
+        , message: msg}
+      return Promise.reject(Error(msg))
+
+    parsed = gitnoteUri.parse(uri)
+    # 전 uri와 같은 uri이라면..
+    if @uri and gitnoteUri.equal(@uri, uri)
+      @uri = uri
+      @scrollIntoView(parsed.hash) if parsed.hash
+      return Promise.resolve(this)
+
+    @uri = uri
+    if gitnoteUri.isRemote(uri)
+      # 원격지 라면.. 처리..
+    else
+      # 로컬 이라면.. 처러..
+      return atom.project.bufferForPath(parsed.pathname) # 절대 경로 이어야함.
+      .then (buffer) =>
+        @setupBuffer(buffer)
+        @updateMarkdown()
+        @scrollIntoView(parsed.hash) if parsed.hash
+        this
+
+    Promise.resolve(this)
+
+
   getTitle: ->
     if(@_title)
       "\@ #{@_title}"
@@ -162,33 +193,6 @@ class MarkdownView extends ScrollView
     @buffer
 
 
-  # hash가 id 인지 name 인지 ..
-  goto: (uri) ->
-    console.log 'MarkdownView#goto()'
-    parsed = rr.parseGitNoteUri(uri)
-    if @uri and rr.equalGitNoteUri(@uri, uri)
-      @uri = uri
-      @scrollIntoView(parsed.hash) if parsed.hash
-      return Promise.resolve(this)
-
-    @uri = uri
-    if parsed.auth and parsed.repository
-      # 원격지 라면.. 처리..
-    else if parsed.auth or parsed.repository
-      # error 처리..
-    else if !parsed.pathname
-      # error 처리..
-    else
-      return atom.project.bufferForPath(parsed.pathname) # 절대 경로 이어야함.
-      .then (buffer) =>
-        @setupBuffer(buffer)
-        @updateMarkdown()
-        @scrollIntoView(parsed.hash) if parsed.hash
-        this
-
-    Promise.resolve(this)
-
-
   scrollIntoView: (@_hash) ->
     console.log 'MarkdownView#scrollIntoView()'
     if atom.workspace.getActivePaneItem() is this
@@ -198,6 +202,7 @@ class MarkdownView extends ScrollView
   scrollNow: ->
     if @_hash
       try
+        # hash가 id 인지 name 인지 ..
         el = @element.querySelector(@_hash)
         el = @element.querySelector("[name=\"#{@_hash.slice(1)}\"]") if !el
         el.scrollIntoViewIfNeeded()
@@ -208,7 +213,6 @@ class MarkdownView extends ScrollView
         @_hash = null
       catch err
         console.error err.stack
-
 
 
   isActive: ->
@@ -243,3 +247,11 @@ class MarkdownView extends ScrollView
 
   onDidChangeTitle: (callback) ->
     @emitter.on 'did-change-title', callback
+
+
+  onSuccess: (callback) ->
+    @emitter.on 'success', callback
+
+
+  onError: (callback) ->
+    @emitter.on 'error', callback

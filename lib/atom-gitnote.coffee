@@ -3,7 +3,7 @@ url = require 'url'
 marked = require 'marked'
 $4 = require './fourdollar'
 fs = require 'fs-extra'
-rr = require './rather'
+{gitnoteUri} = require './rather'
 
 fs.remove = $4.makePromise(fs.remove)
 
@@ -144,18 +144,13 @@ module.exports = AtomGitNote =
   setupOpener: ->
     atom.workspace.addOpener (uriToOpen) =>
       console.log 'AtomGitNote#addOpener(): ', uriToOpen
-      try
-        parsed = rr.parseGitNoteUri(uriToOpen)
-      catch err
-        console.log err.stack
-        return
-      if(parsed)
-        if(parsed.extname in rr.mdExts) # markdown
+      if(gitnoteUri.valid(uriToOpen))
+        if(gitnoteUri.isMarkdownFile(uriToOpen)) # markdown
           for view in atom.workspace.getPaneItems()
-            if (view instanceof MarkdownView) and rr.equalGitNoteUri(uriToOpen, view.getUri())
+            if (view instanceof MarkdownView) and gitnoteUri.equal(uriToOpen, view.getUri())
               view.goto(uriToOpen)
               return Promise.resolve(view)
-          return Promise.resolve(new MarkdownView(uriToOpen))
+          return Promise.resolve(@createMarkdownView(uriToOpen))
 
     @disposables.add atom.workspace.onDidOpen (evt) =>
       # MarkdownView.scrollNow()
@@ -207,36 +202,15 @@ module.exports = AtomGitNote =
         , {detail: evt.message}
 
 
-  # findMarkdownView: (notePah) ->
-  #   console.log 'AtomGitNote#findMarkdownView()'
-  #   for view in atom.workspace.getPaneItems()
-  #     if (view instanceof MarkdownView) and path.resolve(view.getPath()) is path.resolve(notePath)
-  #       return Promise.resolve(view)
-  #   atom.project.bufferForPath(notePath)
-  #   .then (buffer) ->
-  #     new MarkdownView(buffer)
-
-
-  findMarkdownView: (parsed) ->
-    console.log 'AtomGitNote#findMarkdownView()'
-
-    uri = rr.formatGitNoteUri(parsed, ['hash'])
-    for view in atom.workspace.getPaneItems()
-      if (view instanceof MarkdownView) and view.getUri() is uri
-        view.scrollIntoView(parsed.hash) if parsed.hash
-        return Promise.resolve(view)
-    if parsed.auth and parsed.repository
-      # 원격지 라면.. 처리..
-    else if parsed.auth or parsed.repository
-      # error 처리..
-    else if !parsed.pathname
-      # error 처리..
-    else
-      atom.project.bufferForPath(parsed.pathname) # 절대 경로 이어야함.
-      .then (buffer) ->
-        view = new MarkdownView(buffer, uri)
-        view.scrollIntoView(parsed.hash) if parsed.hash
-        view
+  createMarkdownView: (uri) ->
+    view = new MarkdownView(uri)
+    view.onSuccess (evt) ->
+      atom.notifications.addSuccess evt.target.getTitle().slice(2)
+        , {detail: evt.message}
+    view.onError (evt) ->
+      atom.notifications.addError evt.target.getTitle().slice(2)
+        , {detail: evt.message}
+    view
 
 
   getNote: (notePath) ->
