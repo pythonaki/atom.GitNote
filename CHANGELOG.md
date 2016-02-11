@@ -104,10 +104,20 @@
 
 #### v0.1.8a
 
-- [x] MarkdownView: 노트안에 <a href="#hash"> 등이 바르게 동작하게 하기.
+- [x] MarkdownView: 노트안에 &lt;a href="#hash"&gt; 등이 바르게 동작하게 하기.
   - "#hash"
   - "gitnote:///another.md#hash"
   - "gitnote:auth@repository/note.md#hash" (나중에)
 - [x] MarkdownView#setupRenderer(): headline을 GitHub의 방법으로 hash를 주자.
 - [x] MarkdownView#scrollNow(): highlight 다시 제대로.
 - [x] bugfix: MarkdownEditor#insertImage(): 아직도 창이 반복해서 열린다.
+
+
+#### v0.1.8b
+
+- [x] MarkdownView: "gitnote:///another.md#hash" spec
+
+
+#### v0.1.8c
+
+- [ ] bugfix: 외부 마크다운 문서를 저장했을 때 그와 연결된 MarkdownView 탭 타이틀이 변하는 문제.

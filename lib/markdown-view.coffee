@@ -93,8 +93,6 @@ class MarkdownView extends ScrollView
 
     @renderer.heading = (text, level, raw) =>
       @_title = text if(!@_title)
-      # headId = GitNote.createHeadId(text)
-      # "<h#{level} id=\"#{headId}\" class=\"gitnote-markdown-headline\">#{text}</h#{level}>"
       hash = GitNote.createHashName(text)
       "<h#{level} class=\"gitnote-markdown-headline\">" +
       "<a name=\"#{hash}\" class=\"gitnote-anchor\" href=\"\##{hash}\">" +

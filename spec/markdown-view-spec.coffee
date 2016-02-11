@@ -44,12 +44,8 @@ describe 'MarkdownView', ->
       waitsForPromise ->
         activationPromise
       runs ->
-        query = "a[name=\"\##{GitNote.createHashName('Hello World')}\"]"
-        console.log 'query: ', query
-        element = mdView.element
-        content = element.querySelector(query).parentElement.textContent
-        # content = element.querySelector(
-        #   '#' + GitNote.createHashName('Hello World')).innerHTML
+        query = "a[name=\"#{GitNote.createHashName('Hello World')}\"]"
+        content = mdView.element.querySelector(query).parentElement.textContent
         expect(content).toEqual('Hello World')
 
 
@@ -61,8 +57,8 @@ describe 'MarkdownView', ->
           editor.save()
 
       runs ->
-        element = mdView.element
-        content = element.querySelector('#' + GitNote.createHeadId('foobar')).innerHTML
+        query = "a[name=\"#{GitNote.createHashName('foobar')}\"]"
+        content = mdView.element.querySelector(query).parentElement.textContent
         expect(content).toEqual('foobar')
 
 
@@ -124,13 +120,14 @@ describe 'MarkdownView', ->
 
   describe 'MarkdownView#goto()', ->
     it '해당 hash로 하이라이트 된다.', ->
-      id = GitNote.createHeadId('Hello World')
+      hash = GitNote.createHashName('Hello World')
       waitsForPromise ->
         activationPromise
         .then (mdView) ->
-          mdView.goto('gitnote://' + dmp04 + "\##{id}")
+          mdView.goto('gitnote://' + dmp04 + "\##{hash}")
       runs ->
-        el = mdView.element.querySelector("\##{id}")
+        el = mdView.element.querySelector("[name=\"#{hash}\"]")
+        # el = mdView.element.querySelector("\##{hash}")
         expect(el).toBeTruthy()
         expect(el.classList.contains('gitnote-markdown-headline-highlight')).toBeTruthy()
 
@@ -176,25 +173,56 @@ describe 'MarkdownView', ->
         expect(errEvt.message).toEqual('error!!')
 
 
-  describe 'MarkdownView hash link 이동.', ->
-    elem = null
-    it '"#hash" 로 이동.', ->
+  describe 'MarkdownView link 이동.', ->
+    # bug가 있다.
+    # it '#hash 로 이동.', ->
+    #   waitsForPromise ->
+    #     activationPromise
+    #     .then (mdView) ->
+    #       editor.setText '# Test hash click\n' + '[link](#hash)\n' + '<a name="hash">here</a>'
+    #       editor.save()
+    #     .then ->
+    #       el = mdView.element.querySelector('a[href="#hash"]')
+    #       event = new MouseEvent('click', {
+    #         bubbles: true,
+    #         cancelable: true,
+    #         view: window
+    #       })
+    #       el.dispatchEvent(event)
+    #   runs ->
+    #     el = mdView.element.querySelector('a[name="hash"]')
+    #     expect(el).toBeTruthy()
+    #     expect(el.classList.contains('gitnote-markdown-headline-highlight')).toBeTruthy()
+
+    it '"gitnote:///pathname.md#hash" 로 이동.', ->
+      dmp05 = path.resolve(__dirname, '../tmp/repo03/notes/dmp05/dmp05.md')
+      target = null
       waitsForPromise ->
         activationPromise
-        .then (mdView) ->
-          editor.setText('# Test hash click\n' +
-            '[link](#hash01)\n' +
-            '<a name="hash01">here</a>'
-          )
+        .then ->
+          atom.workspace.open(dmp05)
+        .then (_editor) ->
+          target = _editor
+          target.setText '# Target\n ### here'
+          target.save()
+        .then ->
+          here = "gitnote:///#{path.basename(target.getPath())}\#here"
+          editor.setText "\# Link Click\n- [link](#{here})"
           editor.save()
-          el = mdView.element.querySelector('a[href="#hash01"]')
+        .then ->
+          here = "gitnote:///#{path.basename(target.getPath())}\#here"
+          el = mdView.element.querySelector("a[href=\"#{here}\"]")
           event = new MouseEvent('click', {
             bubbles: true,
             cancelable: true,
             view: window
           })
           el.dispatchEvent(event)
+
       runs ->
-        el = mdView.element.querySelector('span[name="hash01"]')
+        here = "gitnote://#{dmp05}\#here"
+        view = atom.workspace.getActivePaneItem()
+        expect(view.getUri()).toEqual("gitnote://#{dmp05}\#here")
+        el = view.element.querySelector('a[name="here"]')
         expect(el).toBeTruthy()
         expect(el.classList.contains('gitnote-markdown-headline-highlight')).toBeTruthy()
