@@ -166,11 +166,9 @@ module.exports = AtomGitNote =
       console.log 'onConfirmed: ', note.id
       @modal.hide()
       uri = 'gitnote://' + note.path
-      uri += "\##{note.headId}" if note.headId
+      uri += "\##{note.hash}" if note.hash
       console.log 'uri: ', uri
       atom.workspace.open(uri, split: 'left')
-      # .then (mdView) ->
-      #   mdView.scrollIntoView(note.headId) if note.headId
 
     @findView.onCancelled () =>
       console.log 'This view was cancelled'
@@ -182,6 +180,7 @@ module.exports = AtomGitNote =
     @disposables.add atom.workspace.onDidOpen (evt) =>
       console.log 'atom.workspace.onDidOpen'
       return unless evt.item instanceof TextEditor
+      return if evt.item.getBuff? # 이미 MarkdownEditor 라면 skip
       notePath = evt.item.getPath()
       if(path.extname(notePath) is '.md' and GitNote.isNoteFile(notePath))
         @createMdEditor(evt.item)
@@ -193,6 +192,7 @@ module.exports = AtomGitNote =
 
 
   createMdEditor: (editor) ->
+    console.log 'AtomGitNote#createMdEditor()'
     mdEditor = MarkdownEditor(editor)
     mdEditor.onSuccess (evt) ->
       atom.notifications.addSuccess evt.target.getTitle().slice(2)

@@ -1,4 +1,4 @@
-path = require 'path'
+{resolve, dirname, basename, extname} = require 'path'
 url = require 'url'
 marked = require 'marked'
 highlight = require 'highlight.js'
@@ -34,7 +34,7 @@ marked.setOptions {
       code
 }
 
-# console.log path.resolve(__dirname)
+# console.log resolve(__dirname)
 
 
 
@@ -93,20 +93,27 @@ class MarkdownView extends ScrollView
 
     @renderer.heading = (text, level, raw) =>
       @_title = text if(!@_title)
-      headId = GitNote.createHeadId(text)
-      "<h#{level} id=\"#{headId}\" class=\"gitnote-markdown-headline\">#{text}</h#{level}>"
+      # headId = GitNote.createHeadId(text)
+      # "<h#{level} id=\"#{headId}\" class=\"gitnote-markdown-headline\">#{text}</h#{level}>"
+      hash = GitNote.createHashName(text)
+      "<h#{level} class=\"gitnote-markdown-headline\">" +
+      "<a name=\"#{hash}\" class=\"gitnote-anchor\" href=\"\##{hash}\">" +
+      "<span class=\"gitnote-markdown-headline-link\"></span>" +
+      "</a>" +
+      text +
+      "</h#{level}>"
 
     @renderer.image = (href, title, text) =>
       {protocol, path: myPath, host} = url.parse(href)
       if(!protocol)
-        href = path.resolve(path.dirname(@getPath()), myPath)
+        href = resolve(dirname(@getPath()), myPath)
       else if((protocol is 'http:' or protocol is 'https:') and (isImageFile(href)))
-        imgPath = path.resolve(path.dirname(@getPath())
+        imgPath = resolve(dirname(@getPath())
           , GitNote.createName(GitNote.getId(@getPath()), href))
         if(fs.existsSync(imgPath))
           href = imgPath
       # else if(protocol is 'gitnote:')
-      #   href = path.resolve(path.dirname(@getPath()), host)
+      #   href = resolve(dirname(@getPath()), host)
       marked.Renderer.prototype.image.call(@renderer, href, title, text)
 
     @renderer.link = (href, title, text) =>
@@ -130,8 +137,42 @@ class MarkdownView extends ScrollView
   updateMarkdown: ->
     console.log 'MarkdownView#updateMarkdown()'
     @_title = null
-    @element.querySelector('.gitnote-markdown-content')
-    .innerHTML = marked(@buffer.getText(), {renderer: @renderer})
+    content = @element.querySelector('.gitnote-markdown-content')
+    content.innerHTML = marked(@buffer.getText(), {renderer: @renderer})
+    hashReg = /^#+/
+    for link in content.querySelectorAll('a')
+      link.addEventListener 'click', (evt) =>
+        href = evt.currentTarget.getAttribute('href')
+        if hashReg.test(href)
+          # 해시 처리.. #hash
+          # @scrollIntoView(href)
+          parsed = gitnoteUri.parse(@getUri())
+          parsed.hash = href
+          @goto(gitnoteUri.format(parsed))
+        else if gitnoteUri.valid(href) and gitnoteUri.isRemote(href)
+          # 원격 처러.. gitnote:name@repository/note.md#hash
+          atom.workspace.open(href, {split: 'left'})
+        else if gitnoteUri.valid(href) and !gitnoteUri.isRemote(href)
+          # 로컬 처리.. gitnote:///note.md#hash
+          {pathname, hash} = gitnoteUri.parse(href);
+          unless dirname(pathname) is '/'
+            msg = "'#{href}': 유효하지 않은 'gitnote:' 프로토콜 uri 이다."
+            @emitter.emit 'error', {target: this, message: msg}
+            return
+          parsed = gitnoteUri.parse(@getUri())
+          if gitnoteUri.isRemote(@getUri())
+            parsed.pathname = pathname
+            parsed.hash = hash
+            atom.workspace.open(gitnoteUri.format(parsed), {split: 'left'})
+          else
+            notesDir = dirname(dirname(parsed.pathname))
+            noteDir = basename(pathname, extname(pathname))
+            noteFile = basename(pathname)
+            parsed.pathname = resolve notesDir, noteDir, noteFile
+            parsed.hash = hash
+            console.log 'open: local -> local', gitnoteUri.format(parsed)
+            atom.workspace.open(gitnoteUri.format(parsed), {split: 'left'})
+
     @updateTitle()
 
 
@@ -148,7 +189,7 @@ class MarkdownView extends ScrollView
     # 전 uri와 같은 uri이라면..
     if @uri and gitnoteUri.equal(@uri, uri)
       @uri = uri
-      @scrollIntoView(parsed.hash) if parsed.hash
+      @scrollIntoView(parsed.hash)
       return Promise.resolve(this)
 
     @uri = uri
@@ -160,7 +201,7 @@ class MarkdownView extends ScrollView
       .then (buffer) =>
         @setupBuffer(buffer)
         @updateMarkdown()
-        @scrollIntoView(parsed.hash) if parsed.hash
+        @scrollIntoView(parsed.hash)
         this
 
     Promise.resolve(this)
@@ -170,7 +211,7 @@ class MarkdownView extends ScrollView
     if(@_title)
       "\@ #{@_title}"
     else if(@getPath())
-      "\@ #{path.basename(@getPath())}"
+      "\@ #{basename(@getPath())}"
     else
       '@ untitled'
 
@@ -200,17 +241,18 @@ class MarkdownView extends ScrollView
 
 
   scrollNow: ->
+    console.log 'MarkdownView#scrollNow(): ', @_hash
     if @_hash
       try
         # hash가 id 인지 name 인지 ..
-        el = @element.querySelector(@_hash)
-        el = @element.querySelector("[name=\"#{@_hash.slice(1)}\"]") if !el
-        el.scrollIntoViewIfNeeded()
+        el = @element.querySelector("[name=\"#{@_hash.slice(1)}\"]")
+        el = @element.querySelector(@_hash) if !el
+        el.scrollIntoView()
         el.classList.add('gitnote-markdown-headline-highlight')
         setTimeout ->
           el.classList.remove('gitnote-markdown-headline-highlight')
         , 300
-        @_hash = null
+        # @_hash = null
       catch err
         console.error err.stack
 

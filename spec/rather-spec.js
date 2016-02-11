@@ -70,8 +70,11 @@ describe('rather', () => {
 
 
     it('gitnoteUri.format(): parse 된것을 다시 ginoteUri 포멧으로 바꿔도 같아야 한다.', () => {
-      const uri = 'gitnote:auth@repository/pathname.md#hash';
-      const parsed = gitnoteUri.parse(uri);
+      let uri = 'gitnote:auth@repository/pathname.md#hash';
+      let parsed = gitnoteUri.parse(uri);
+      expect(gitnoteUri.format(parsed)).toEqual(uri);
+      uri = 'gitnote:///pathname.md#hash';
+      parsed = gitnoteUri.parse(uri);
       expect(gitnoteUri.format(parsed)).toEqual(uri);
     });
 
@@ -93,8 +96,21 @@ describe('rather', () => {
 
     it('gitnoteUri.equal(): hash를 제외한 모든 uri가 같은지 검사한다.', () => {
       const uri1 = 'gitnote:auth@repository/pathname.md';
-      const uri2 = 'gitnote:auth@repository/pathname.md#hash'
+      const uri2 = 'gitnote:auth@repository/pathname.md#hash';
       expect(gitnoteUri.equal(uri1, uri2)).toBeTruthy();
+    });
+
+    it('gitnoteUri.equal(): 로컬도 같은지 다른지 검사.', () => {
+      const uri1 = 'gitnote:///name01.md';
+      const uri2 = 'gitnote:///name01.md#hash';
+      const uri3 = 'gitnote:///foo/bar/name02.md';
+      const uri4 = 'gitnote:///foo/bar/name02.md#hash';
+      const uri5 = 'gitnote:///foo/bar/name03.md#hash';
+      const uri6 = 'gitnote:///name04.md#hash';
+      expect(gitnoteUri.equal(uri1, uri2)).toBeTruthy();
+      expect(gitnoteUri.equal(uri3, uri4)).toBeTruthy();
+      expect(gitnoteUri.equal(uri4, uri5)).toBeFalsy();
+      expect(gitnoteUri.equal(uri2, uri6)).toBeFalsy();
     });
 
     it('gitnoteUri.valid(): 유효한 uri인지 검사한다.', () => {

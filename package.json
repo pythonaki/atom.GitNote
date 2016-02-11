@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "atom-space-pen-views": "^2.1.0",
+    "entities": "^1.1.1",
     "follow-redirects": "0.0.7",
     "fs-extra": "^0.26.3",
     "highlight.js": "^9.1.0",

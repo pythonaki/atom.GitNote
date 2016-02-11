@@ -76,10 +76,11 @@ describe "atom.GitNote", ->
         li = workspaceElement.querySelectorAll('.gitnote-headline')
         li = [].slice.call(li)
         expect(li.length).toEqual(5)
-        headId = dic[0].headId
-        liElemet = workspaceElement.querySelector("\#gitnote-#{headId}")
-        expect(liElemet).toExist()
-        expect(liElemet.textContent).toEqual('Headline1')
+        # hash = dic[0].hash
+        # liElemet = workspaceElement.querySelector("\#gitnote-#{hash}")
+        # expect(liElemet).toExist()
+        # expect(liElemet.textContent).toEqual('Headline1')
+        expect(li[0].textContent).toEqual('Headline1')
 
 
     it '첫번째 headline을 선택한다.', ->

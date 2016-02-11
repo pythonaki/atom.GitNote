@@ -100,3 +100,14 @@
 - [x] rather.js: gitnoteUri 구현을 보다 유용하게.
 - [x] MarkdownView#goto(): 좀더 다듬자.
 - [x] MarkdownView: onSuccess, onError.
+
+
+#### v0.1.8a
+
+- [x] MarkdownView: 노트안에 <a href="#hash"> 등이 바르게 동작하게 하기.
+  - "#hash"
+  - "gitnote:///another.md#hash"
+  - "gitnote:auth@repository/note.md#hash" (나중에)
+- [x] MarkdownView#setupRenderer(): headline을 GitHub의 방법으로 hash를 주자.
+- [x] MarkdownView#scrollNow(): highlight 다시 제대로.
+- [x] bugfix: MarkdownEditor#insertImage(): 아직도 창이 반복해서 열린다.

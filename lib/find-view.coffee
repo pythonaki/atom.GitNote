@@ -16,10 +16,11 @@ class FindView extends SelectListView
     console.log 'FindView#viewForItem()'
     tag = null
     headline = null
-    if(note.headId)
-      tag = "<li id=\"gitnote-#{note.headId}\" class=\"gitnote-headline\">"
-    else
-      tag = "<li class=\"gitnote-headline\">"
+    # if(note.hash)
+    #   tag = "<li id=\"gitnote-#{note.hash}\" class=\"gitnote-headline\">"
+    # else
+    #   tag = "<li class=\"gitnote-headline\">"
+    tag = "<li class=\"gitnote-headline\">"
     headline = @_indent(note.level) + note.headline
     tag + headline + '</li>'
 

@@ -44,9 +44,12 @@ describe 'MarkdownView', ->
       waitsForPromise ->
         activationPromise
       runs ->
+        query = "a[name=\"\##{GitNote.createHashName('Hello World')}\"]"
+        console.log 'query: ', query
         element = mdView.element
-        content = element.querySelector(
-          '#' + GitNote.createHeadId('Hello World')).innerHTML
+        content = element.querySelector(query).parentElement.textContent
+        # content = element.querySelector(
+        #   '#' + GitNote.createHashName('Hello World')).innerHTML
         expect(content).toEqual('Hello World')
 
 
@@ -171,3 +174,27 @@ describe 'MarkdownView', ->
       runs ->
         expect(errEvt.target).toEqual(mdView)
         expect(errEvt.message).toEqual('error!!')
+
+
+  describe 'MarkdownView hash link 이동.', ->
+    elem = null
+    it '"#hash" 로 이동.', ->
+      waitsForPromise ->
+        activationPromise
+        .then (mdView) ->
+          editor.setText('# Test hash click\n' +
+            '[link](#hash01)\n' +
+            '<a name="hash01">here</a>'
+          )
+          editor.save()
+          el = mdView.element.querySelector('a[href="#hash01"]')
+          event = new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            view: window
+          })
+          el.dispatchEvent(event)
+      runs ->
+        el = mdView.element.querySelector('span[name="hash01"]')
+        expect(el).toBeTruthy()
+        expect(el.classList.contains('gitnote-markdown-headline-highlight')).toBeTruthy()
