@@ -8,10 +8,13 @@
 # For more detailed documentation see
 # https://atom.io/docs/latest/behind-atom-keymaps-in-depth
 'atom-workspace':
-  'ctrl-alt-o': 'atom-gitnote:toggle-find'
-  'ctrl-alt-q': 'atom-gitnote:new-markdown'
-  'ctrl-alt-e': 'atom-gitnote:toggle-open'
+  'alt-cmd-enter': 'atom-gitnote:toggle-find'
+  'alt-cmd-n': 'atom-gitnote:new-markdown'
+  'alt-cmd-o': 'atom-gitnote:toggle-open'
+  'alt-cmd-k': 'atom-gitnote:delete'
 
 '.gitnote-markdown-view':
-  'alt-cmd-k': 'atom-gitnote:delete'
   'cmd-c': 'atom-gitnote:copy'
+
+'.editor':
+  'alt-cmd-m': 'atom-gitnote:insert-image'

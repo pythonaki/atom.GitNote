@@ -1,9 +1,16 @@
 path = require 'path'
 url = require 'url'
-GitNote = require './lib-gitnote'
 marked = require 'marked'
+$4 = require './fourdollar'
+fs = require 'fs-extra'
+{gitnoteUri} = require './rather'
+
+fs.remove = $4.makePromise(fs.remove)
+
+GitNote = require './lib-gitnote'
 FindView = require './find-view'
 MarkdownView = require './markdown-view'
+MarkdownEditor = require './markdown-editor'
 {CompositeDisposable} = require 'atom'
 resourcePath = atom.config.resourcePath
 try
@@ -11,7 +18,6 @@ try
 catch e
   # Catch error
 TextEditor = Editor ? require path.resolve resourcePath, 'src', 'text-editor'
-
 
 
 
@@ -38,7 +44,6 @@ module.exports = AtomGitNote =
 
   activate: (state) ->
     console.log 'AtomGitNote#activate()'
-    @setupOpener()
 
     # Events subscribed to in atom's system can be easily cleaned up with a CompositeDisposable
     @disposables = new CompositeDisposable
@@ -46,7 +51,9 @@ module.exports = AtomGitNote =
     @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:toggle-find': => @toggleFind()
     @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:new-markdown': => @newMarkdown()
     @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:toggle-open': => @toggleOpen()
+    @disposables.add atom.commands.add 'atom-workspace', 'atom-gitnote:delete': => @deleteNote()
 
+    @setupOpener()
     @setupFindView()
     @setupMdEditor()
 
@@ -82,7 +89,7 @@ module.exports = AtomGitNote =
     AtomGitNote.getNote()
     .then (gitNote) ->
       gitNote.create(ext)
-    .then (notePath) ->
+    .then (notePath) =>
       atom.workspace.open(notePath) # TextEditor를 Promise로 리턴한다.
     .then (editor) =>
       @newNoteCalled = true
@@ -101,22 +108,53 @@ module.exports = AtomGitNote =
 
     if path.extname(notePath) is '.md'
       if activePane instanceof TextEditor
-        atom.workspace.open('markdown-view://' + notePath, split: 'left')
+        atom.workspace.open('gitnote://' + notePath, split: 'left')
       else if activePane instanceof MarkdownView
         atom.workspace.open(notePath, split: 'left')
+
+
+  deleteNote: ->
+    console.log 'AtomGitNote#deleteNote()'
+    pane = atom.workspace.getActivePaneItem()
+    if pane.getBuff? and pane.getPath?
+      confirm = atom.confirm
+        message: 'Delete?'
+        detailedMessage: "This note will be deleted if you choose 'ok'."
+        buttons: ['Cancel', 'Ok']
+      if confirm is 1
+        mdPath = pane.getPath()
+        if GitNote.isNoteFile(mdPath)
+          mdPath = path.dirname(mdPath)
+        fs.remove(mdPath)
+        .then ->
+          pane.getBuff().destroy()
+        .catch (e) =>
+          console.error e.stack
+
+
+  # open: (uri, options) ->
+  #   atom.workspace.open(uri, options)
+  #   .then (view) ->
+  #     if view instanceof MarkdownView
+  #       console.log 'view.goto()'
+  #       return view.goto(uri)
+  #     view
 
 
   setupOpener: ->
     atom.workspace.addOpener (uriToOpen) =>
       console.log 'AtomGitNote#addOpener(): ', uriToOpen
-      try
-        {protocol, host, path: myPath} = url.parse(uriToOpen)
-      catch err
-        console.log err.stack
-        return
+      if(gitnoteUri.valid(uriToOpen))
+        if(gitnoteUri.isMarkdownFile(uriToOpen)) # markdown
+          for view in atom.workspace.getPaneItems()
+            if (view instanceof MarkdownView) and gitnoteUri.equal(uriToOpen, view.getUri())
+              view.goto(uriToOpen)
+              return Promise.resolve(view)
+          return Promise.resolve(@createMarkdownView(uriToOpen))
 
-      if(protocol is 'markdown-view:')
-        return @findMarkdownView(host + myPath)
+    @disposables.add atom.workspace.onDidOpen (evt) =>
+      # MarkdownView.scrollNow()
+      evt.item.scrollNow?()
 
 
   setupFindView: ->
@@ -127,11 +165,10 @@ module.exports = AtomGitNote =
     @findView.onConfirmed (note) =>
       console.log 'onConfirmed: ', note.id
       @modal.hide()
-      uri = 'markdown-view://' + note.path
-      # uri += "\##{note.headId}" if note.headId
+      uri = 'gitnote://' + note.path
+      uri += "\##{note.hash}" if note.hash
+      console.log 'uri: ', uri
       atom.workspace.open(uri, split: 'left')
-      .then (mdView) ->
-        mdView.scrollIntoView(note.headId) if note.headId
 
     @findView.onCancelled () =>
       console.log 'This view was cancelled'
@@ -143,52 +180,37 @@ module.exports = AtomGitNote =
     @disposables.add atom.workspace.onDidOpen (evt) =>
       console.log 'atom.workspace.onDidOpen'
       return unless evt.item instanceof TextEditor
+      return if evt.item.getBuff? # 이미 MarkdownEditor 라면 skip
       notePath = evt.item.getPath()
       if(path.extname(notePath) is '.md' and GitNote.isNoteFile(notePath))
-        @makeMdEditor(evt.item)
+        @createMdEditor(evt.item)
 
     for editor in atom.workspace.getTextEditors()
       notePath = editor.getPath()
       if(path.extname(notePath) is '.md' and GitNote.isNoteFile(notePath))
-        @makeMdEditor(editor)
+        @createMdEditor(editor)
 
 
-  makeMdEditor: (editor) ->
-    console.log 'AtomGitNote#makeMdEditor()'
-    editor.getTitle = ->
-      title = null
-      renderer = new marked.Renderer()
-      renderer.heading = (text, level) ->
-        title = text if(!title)
-      marked(@getText(), {renderer})
-      if(title?)
-        return "\# #{title}"
-      else
-        return '# untitled'
-
-    editor.getLongTitle = ->
-      "#{@getTitle()} - #{path.basename(@buffer.getPath())}"
-
-    editor.save = ->
-      @buffer.save()
-      @emitter.emit 'did-change-title', @getTitle()
-      @emitter.emit 'saved', {target: this}
-
-    editor.saveAs = (filePath) ->
-      msg = "Don't allow saveAs!!"
-      console.error msg
-
-    editor.emitter.emit 'did-change-title', editor.getTitle()
+  createMdEditor: (editor) ->
+    console.log 'AtomGitNote#createMdEditor()'
+    mdEditor = MarkdownEditor(editor)
+    mdEditor.onSuccess (evt) ->
+      atom.notifications.addSuccess evt.target.getTitle().slice(2)
+        , {detail: evt.message}
+    mdEditor.onError (evt) ->
+      atom.notifications.addError evt.target.getTitle().slice(2)
+        , {detail: evt.message}
 
 
-  findMarkdownView: (notePath) ->
-    console.log 'AtomGitNote#findMarkdownView()'
-    for view in atom.workspace.getPaneItems()
-      if (view instanceof MarkdownView) and path.resolve(view.getPath()) is path.resolve(notePath)
-        return Promise.resolve(view)
-    atom.project.bufferForPath(notePath)
-    .then (buffer) ->
-      new MarkdownView(buffer)
+  createMarkdownView: (uri) ->
+    view = new MarkdownView(uri)
+    view.onSuccess (evt) ->
+      atom.notifications.addSuccess evt.target.getTitle().slice(2)
+        , {detail: evt.message}
+    view.onError (evt) ->
+      atom.notifications.addError evt.target.getTitle().slice(2)
+        , {detail: evt.message}
+    view
 
 
   getNote: (notePath) ->

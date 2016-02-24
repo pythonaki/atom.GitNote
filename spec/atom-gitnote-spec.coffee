@@ -1,11 +1,12 @@
 AtomGitNote = require '../lib/atom-gitnote'
+GitNote = require '../lib/lib-gitnote'
+MarkdownView = require '../lib/markdown-view'
 fs = require 'fs-extra'
 path = require 'path'
 nodegit = require 'nodegit'
 $4 = require '../lib/fourdollar'
 $4.debug()
 $4.node()
-GitNote = require '../lib/lib-gitnote'
 
 fs.remove = $4.makePromise(fs.remove)
 fs.ensureDir = $4.makePromise(fs.ensureDir)
@@ -75,10 +76,11 @@ describe "atom.GitNote", ->
         li = workspaceElement.querySelectorAll('.gitnote-headline')
         li = [].slice.call(li)
         expect(li.length).toEqual(5)
-        headId = dic[0].headId
-        liElemet = workspaceElement.querySelector("\#gitnote-#{headId}")
-        expect(liElemet).toExist()
-        expect(liElemet.textContent).toEqual('Headline1')
+        # hash = dic[0].hash
+        # liElemet = workspaceElement.querySelector("\#gitnote-#{hash}")
+        # expect(liElemet).toExist()
+        # expect(liElemet.textContent).toEqual('Headline1')
+        expect(li[0].textContent).toEqual('Headline1')
 
 
     it '첫번째 headline을 선택한다.', ->
@@ -198,8 +200,8 @@ describe "atom.GitNote", ->
         .then (notePath_) ->
           notePath = notePath_
           atom.workspace.open(notePath)
-        .then (editor_) ->
-          editor = editor_
+        .then (_editor) ->
+          editor = _editor
           editor.setText('## editor')
       runs ->
         expect(editor.getTitle()).toEqual(path.basename(notePath))
@@ -208,3 +210,160 @@ describe "atom.GitNote", ->
         atom.packages.activatePackage('atom-gitnote')
       runs ->
         expect(editor.getTitle()).toEqual('# editor')
+
+
+  describe 'atom-gitnote:toggle-open', ->
+    it 'TextEditor -> MarkdownView, MarkdownView -> TextEditor', ->
+      waitsForPromise ->
+        activationPromise
+        .then ->
+          atom.commands.dispatch workspaceElement, 'atom-gitnote:new-markdown'
+      waitsFor ->
+        !!atom.workspace.getActiveTextEditor()
+      runs ->
+        editor = atom.workspace.getActiveTextEditor()
+        editor.setText('# Hello World')
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-open'
+      waitsFor ->
+        atom.workspace.getActivePaneItem() instanceof MarkdownView
+      runs ->
+        mdView = atom.workspace.getActivePaneItem()
+        expect(mdView.getTitle()).toEqual('@ Hello World')
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-open'
+      waitsFor ->
+        !!atom.workspace.getActiveTextEditor()
+      runs ->
+        editor = atom.workspace.getActiveTextEditor()
+        expect(editor.getText()).toEqual('# Hello World')
+
+
+  describe 'atom-gitnote:delete', ->
+    it 'TextEditor에서 노트파일이 맞다면 삭제할수 있다.', ->
+      notePath = null
+      confirm = null
+      waitsForPromise ->
+        activationPromise
+        .then ->
+          atom.commands.dispatch workspaceElement, 'atom-gitnote:new-markdown'
+      waitsFor ->
+        !!atom.workspace.getActiveTextEditor()
+      waitsForPromise ->
+        editor = atom.workspace.getActiveTextEditor()
+        notePath = editor.getPath()
+        editor.setText('# Hello World')
+        editor.save()
+      runs ->
+        expect(fs.existsSync(notePath)).toBeTruthy()
+      runs ->
+        confirm = atom.confirm
+        atom.confirm = -> 1
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:delete'
+      waitsFor ->
+        !atom.workspace.getActiveTextEditor()
+      runs ->
+        atom.confirm = confirm
+        expect(fs.existsSync(notePath)).toBeFalsy()
+
+
+    it 'MarkdownView에서도 노트파일이 맞다면 삭제할 수 있다.', ->
+      notePath = null
+      confirm = null
+      waitsForPromise ->
+        activationPromise
+        .then ->
+          atom.commands.dispatch workspaceElement, 'atom-gitnote:new-markdown'
+      waitsFor ->
+        !!atom.workspace.getActiveTextEditor()
+      waitsForPromise ->
+        editor = atom.workspace.getActiveTextEditor()
+        notePath = editor.getPath()
+        editor.setText('# Hello World')
+        editor.save()
+      runs ->
+        expect(fs.existsSync(notePath)).toBeTruthy()
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-open'
+      waitsFor ->
+        atom.workspace.getActivePaneItem() instanceof MarkdownView
+      runs ->
+        confirm = atom.confirm
+        atom.confirm = -> 1
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:delete'
+      waitsFor ->
+        !(atom.workspace.getActivePaneItem() instanceof MarkdownView)
+      runs ->
+        atom.confirm = confirm
+        expect(fs.existsSync(notePath)).toBeFalsy()
+
+
+    it '관리되지 않는 노트파일은 TextEditor에서는
+     delete 안되지만 MarkdownView에서는 delete 할수 있다.', ->
+      repo03 = path.resolve(__dirname, '../tmp/repo03')
+      dmp01 = path.resolve(repo03, 'dmp01.md')
+
+      waitsForPromise ->
+        $4.copy(path.resolve(__dirname, '../tmp/dmp01.md'), dmp01)
+        .then ->
+          atom.workspace.open(dmp01)
+      waitsFor ->
+        !!atom.workspace.getActiveTextEditor()
+      runs ->
+        atom.confirm = $4.createSpy(atom, atom.confirm)
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:delete'
+        expect(atom.confirm.wasCalled).toBeFalsy()
+        atom.confirm = atom.confirm.func
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:toggle-open'
+      waitsFor ->
+        atom.workspace.getActivePaneItem() instanceof MarkdownView
+      runs ->
+        confirm = atom.confirm
+        atom.confirm = -> 1
+        atom.commands.dispatch workspaceElement, 'atom-gitnote:delete'
+      waitsFor ->
+        !(atom.workspace.getActivePaneItem() instanceof MarkdownView)
+      runs ->
+        atom.confirm = confirm
+        expect(fs.existsSync(dmp01)).toBeFalsy()
+
+
+  describe 'Notification', ->
+    repo03 = path.resolve(__dirname, '../tmp/repo03')
+
+    it 'MarkdownEditor를 save 할때 Success Notification 창을 띄운다.', ->
+      editor = null
+      noti = null
+      atom.notifications.onDidAddNotification (_noti) ->
+        noti = _noti
+
+      waitsForPromise ->
+        activationPromise
+        .then ->
+          atom.workspace.open(path.resolve(repo03, 'notes/success/success.md'))
+        .then (_editor) ->
+          editor = _editor
+          editor.setText('# Test Success Notification')
+          editor.save()
+
+      runs ->
+        expect(noti.type).toEqual('success')
+        expect(noti.message).toEqual('Test Success Notification')
+
+
+    it 'MarkdownEditor를 error가 있을 때 Error Notification 창을 띄운다.', ->
+      editor = null
+      noti = null
+      atom.notifications.onDidAddNotification (_noti) ->
+        noti = _noti
+
+      waitsForPromise ->
+        activationPromise
+        .then ->
+          atom.workspace.open(path.resolve(repo03, 'notes/error/error.md'))
+        .then (_editor) ->
+          editor = _editor
+          editor.setText(
+            '# Test Error Notification\n![error](http://foobar.jpg)')
+          editor.save()
+
+      runs ->
+        expect(noti.type).toEqual('error')
+        expect(noti.message).toEqual('Test Error Notification')

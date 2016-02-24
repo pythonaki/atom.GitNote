@@ -99,4 +99,19 @@
     width: 100%;
     text-align: right;
   }
+
+  .gitnote-markdown-headline {
+  }
+
+  .gitnote-markdown-headline-highlight {
+    color: @base-background-color;
+    background-color: @text-color-highlight;
+  }
+
+  .gitnote-markdown-headline-link::before {
+    transition: color 0.3s ease, background-color 0.3s ease;
+    display: inline-block;
+    content: "#";
+    margin-right: 0.2em;
+  }
 }
