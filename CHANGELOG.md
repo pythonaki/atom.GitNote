@@ -118,6 +118,6 @@
 - [x] MarkdownView: "gitnote:///another.md#hash" spec
 
 
-#### v0.1.8c
+#### v0.1.9
 
-- [ ] bugfix: 외부 마크다운 문서를 저장했을 때 그와 연결된 MarkdownView 탭 타이틀이 변하는 문제.
+- [x] 버젼 완료.
