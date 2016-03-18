@@ -121,3 +121,18 @@
 #### v0.1.9
 
 - [x] 버젼 완료.
+
+
+
+## v0.2
+
+
+#### v0.2.0
+- markdown.less 표 스타일 바꾸다.
+
+
+#### v0.2.1
+
+- [ ] bugfix: 외부 .md 파일을 gitnote: 프로토콜로 불러 드릴때 파일명에 스페이스나 특수 문자가 포함 되어있으면 제대로 열지 못하는 문제.
+- [ ] bugfix: MarkdownEditor와 MarkdownView가 같이 열려 있을 때 저장할 내용이 있는데도 불구하고 MarkdownEditor가 그냥 닫히는 문제.
+- [ ] bugfix: 외부에서 편집, 저장했을 때 MarkdownView가 업데이트 안되는 문제.

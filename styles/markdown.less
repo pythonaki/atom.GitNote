@@ -21,7 +21,7 @@
 
 .gitnote-markdown-view {
   font-family: @fontFamily;
-  background-color: @tool-panel-background-color;
+  background-color: @base-border-color;
   overflow: auto;
 }
 
@@ -41,7 +41,7 @@
 .gitnote-markdown-content {
   width: @contentWidth;
   font-size: @fontSize;
-  background-color: @base-background-color;
+  background-color: @tool-panel-background-color;
   margin: 0 auto;
   margin-bottom: 20px;
   padding: 30px;
@@ -83,9 +83,9 @@
     font-size: @fontSize * 0.8;
   }
 
-  code {
-    font-family: @codeFont;
-  }
+  // code {
+  //   font-family: @codeFont;
+  // }
 
   img {
     max-width: 100%
@@ -93,6 +93,19 @@
 
   p {
     margin: @fontSize / 3 0 @fontSize / 6 0;
+  }
+
+  table {
+    border-top: 2px solid @text-color-subtle;
+    border-bottom: 2px solid @text-color-subtle;
+  }
+
+  thead {
+    border-bottom: 1px solid @text-color-subtle;
+  }
+
+  td, th {
+    padding: 0.2em 0.3em;
   }
 
   div.gitnote-markdown-origin {
